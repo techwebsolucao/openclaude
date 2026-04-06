@@ -5,8 +5,8 @@ import { tryParseShellCommand } from '../../utils/bash/shellQuote.js'
 import { getCwd } from '../../utils/cwd.js'
 import type { PermissionResult } from '../../utils/permissions/PermissionResult.js'
 import type { BashTool } from './BashTool.js'
-import { checkReadOnlyConstraints } from './readOnlyValidation.js'
 import { checkDangerousRemovalPaths } from './pathValidation.js'
+import { checkReadOnlyConstraints } from './readOnlyValidation.js'
 
 const ACCEPT_EDITS_WRITE_COMMANDS = [
   // Filesystem write commands
@@ -187,14 +187,33 @@ export function checkPermissionMode(
 
   const commands = splitCommand_DEPRECATED(input.command)
 
+  // Track whether all subcommands were explicitly allowed by mode checks.
+  // If any subcommand falls through to 'passthrough', the entire pipeline
+  // must go through the normal permission flow to prevent a safe command
+  // (e.g. `cat`) from auto-allowing a dangerous subsequent command.
+  let allAllowed = true
+  let lastAllowResult: PermissionResult | null = null
+
   // Check each subcommand
   for (const cmd of commands) {
     const result = validateCommandForMode(cmd, toolPermissionContext, input.command)
 
-    // If any command triggers mode-specific behavior, return that result
-    if (result.behavior !== 'passthrough') {
+    // If any subcommand is explicitly denied/asked, return immediately
+    if (result.behavior === 'ask' || result.behavior === 'deny') {
       return result
     }
+
+    if (result.behavior === 'allow') {
+      lastAllowResult = result
+    } else {
+      // 'passthrough' — this subcommand is not covered by mode auto-allow
+      allAllowed = false
+    }
+  }
+
+  // Only auto-allow the entire pipeline if every subcommand was allowed
+  if (allAllowed && lastAllowResult) {
+    return lastAllowResult
   }
 
   // No mode-specific handling needed

@@ -5,10 +5,10 @@ import { dirname, isAbsolute, join, relative } from 'path'
 import { getCwdState } from '../../bootstrap/state.js'
 import type { CompletionBoundary } from '../../state/AppStateStore.js'
 import {
-  type AppState,
-  IDLE_SPECULATION_STATE,
-  type SpeculationResult,
-  type SpeculationState,
+    type AppState,
+    IDLE_SPECULATION_STATE,
+    type SpeculationResult,
+    type SpeculationState,
 } from '../../state/AppStateStore.js'
 import { commandHasAnyCd } from '../../tools/BashTool/bashPermissions.js'
 import { checkReadOnlyConstraints } from '../../tools/BashTool/readOnlyValidation.js'
@@ -20,39 +20,39 @@ import { getGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { errorMessage } from '../../utils/errors.js'
 import {
-  type FileStateCache,
-  mergeFileStateCaches,
-  READ_FILE_STATE_CACHE_SIZE,
+    type FileStateCache,
+    mergeFileStateCaches,
+    READ_FILE_STATE_CACHE_SIZE,
 } from '../../utils/fileStateCache.js'
 import {
-  type CacheSafeParams,
-  createCacheSafeParams,
-  runForkedAgent,
+    type CacheSafeParams,
+    createCacheSafeParams,
+    runForkedAgent,
 } from '../../utils/forkedAgent.js'
 import { formatDuration, formatNumber } from '../../utils/format.js'
 import type { REPLHookContext } from '../../utils/hooks/postSamplingHooks.js'
 import { logError } from '../../utils/log.js'
 import type { SetAppState } from '../../utils/messageQueueManager.js'
 import {
-  createSystemMessage,
-  createUserMessage,
-  INTERRUPT_MESSAGE,
-  INTERRUPT_MESSAGE_FOR_TOOL_USE,
+    createSystemMessage,
+    createUserMessage,
+    INTERRUPT_MESSAGE,
+    INTERRUPT_MESSAGE_FOR_TOOL_USE,
 } from '../../utils/messages.js'
 import { getClaudeTempDir } from '../../utils/permissions/filesystem.js'
 import { extractReadFilesFromMessages } from '../../utils/queryHelpers.js'
 import { getTranscriptPath } from '../../utils/sessionStorage.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../analytics/index.js'
 import {
-  generateSuggestion,
-  getPromptVariant,
-  getSuggestionSuppressReason,
-  logSuggestionSuppressed,
-  shouldFilterSuggestion,
+    generateSuggestion,
+    getPromptVariant,
+    getSuggestionSuppressReason,
+    logSuggestionSuppressed,
+    shouldFilterSuggestion,
 } from './promptSuggestion.js'
 
 const MAX_SPECULATION_TURNS = 20
@@ -470,8 +470,7 @@ export async function startSpeculation(
 
           const canAutoAcceptEdits =
             mode === 'acceptEdits' ||
-            mode === 'bypassPermissions' ||
-            (mode === 'plan' && isBypassPermissionsModeAvailable)
+            mode === 'bypassPermissions'
 
           if (!canAutoAcceptEdits) {
             logForDebugging(`[Speculation] Stopping at file edit: ${tool.name}`)

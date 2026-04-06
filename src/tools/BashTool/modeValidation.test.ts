@@ -42,3 +42,21 @@ test('acceptEdits still blocks dangerous rm paths even in auto-allow mode', () =
 
   expect(result.behavior).toBe('ask')
 })
+
+test('acceptEdits does not auto-allow pipeline starting with safe command followed by unknown command', () => {
+  const result = checkPermissionMode(
+    { command: 'cat foo.txt | some-dangerous-cmd' } as never,
+    acceptEditsContext,
+  )
+
+  expect(result.behavior).toBe('passthrough')
+})
+
+test('acceptEdits auto-allows pipeline of all safe commands', () => {
+  const result = checkPermissionMode(
+    { command: 'cat foo.txt && ls src' } as never,
+    acceptEditsContext,
+  )
+
+  expect(result.behavior).toBe('allow')
+})
