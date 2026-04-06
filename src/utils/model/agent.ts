@@ -3,10 +3,11 @@ import { capitalize } from '../stringUtils.js'
 import { MODEL_ALIASES, type ModelAlias } from './aliases.js'
 import { applyBedrockRegionPrefix, getBedrockRegionPrefix } from './bedrock.js'
 import {
-  getCanonicalName,
-  getRuntimeMainLoopModel,
-  parseUserSpecifiedModel,
+    getCanonicalName,
+    getRuntimeMainLoopModel,
+    parseUserSpecifiedModel,
 } from './model.js'
+import { isOllamaProvider } from './ollamaModels.js'
 import { getAPIProvider } from './providers.js'
 
 export const AGENT_MODEL_OPTIONS = [...MODEL_ALIASES, 'inherit'] as const
@@ -76,6 +77,27 @@ export function getAgentModel(
   }
 
   const agentModelWithExp = agentModel ?? getDefaultSubagentModel()
+
+  // For 3P providers (OpenRouter, etc.), Claude-specific aliases (haiku, sonnet, opus)
+  // won't resolve to valid model IDs. Force inherit so subagents use the same model
+  // the user configured for their provider.
+  const provider = getAPIProvider()
+  const is3PProvider =
+    provider !== 'firstParty' &&
+    provider !== 'bedrock' &&
+    provider !== 'vertex' &&
+    provider !== 'foundry'
+  if (
+    is3PProvider &&
+    !(provider === 'openai' && isOllamaProvider()) &&
+    agentModelWithExp !== 'inherit'
+  ) {
+    return getRuntimeMainLoopModel({
+      permissionMode: permissionMode ?? 'default',
+      mainLoopModel: parentModel,
+      exceeds200kTokens: false,
+    })
+  }
 
   if (agentModelWithExp === 'inherit') {
     // Apply runtime model resolution for inherit to get the effective model

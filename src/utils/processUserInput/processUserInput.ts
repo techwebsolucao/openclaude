@@ -1,9 +1,9 @@
-import { feature } from 'bun:bundle'
 import type {
   Base64ImageSource,
   ContentBlockParam,
   ImageBlockParam,
 } from '@anthropic-ai/sdk/resources/messages.mjs'
+import { feature } from 'bun:bundle'
 import { randomUUID } from 'crypto'
 import type { QuerySource } from 'src/constants/querySource.js'
 import { logEvent } from 'src/services/analytics/index.js'
@@ -58,6 +58,7 @@ import {
   hasUltraplanKeyword,
   replaceUltraplanKeyword,
 } from '../ultraplan/keyword.js'
+import { hasPlanKeyword } from './planKeyword.js'
 import { processTextPrompt } from './processTextPrompt.js'
 export type ProcessUserInputContext = ToolUseContext & LocalJSXCommandContext
 
@@ -480,6 +481,33 @@ async function processUserInputBase(
     const { processSlashCommand } = await import('./processSlashCommand.js')
     const slashResult = await processSlashCommand(
       `/ultraplan ${rewritten}`,
+      precedingInputBlocks,
+      imageContentBlocks,
+      [],
+      context,
+      setToolJSX,
+      uuid,
+      isAlreadyProcessing,
+      canUseTool,
+    )
+    return addImageMetadataMessage(slashResult, imageMetadataTexts)
+  }
+
+  // Auto-detect plan intent: when the user types something like "planeje",
+  // "planejar", "planning", "plan this", etc. and is not already in plan mode,
+  // auto-route through /plan so plan mode activates with the user's message.
+  if (
+    mode === 'prompt' &&
+    !context.options.isNonInteractiveSession &&
+    inputString !== null &&
+    !effectiveSkipSlash &&
+    !inputString.startsWith('/') &&
+    context.getAppState().toolPermissionContext.mode !== 'plan' &&
+    hasPlanKeyword(inputString)
+  ) {
+    const { processSlashCommand } = await import('./processSlashCommand.js')
+    const slashResult = await processSlashCommand(
+      `/plan ${inputString}`,
       precedingInputBlocks,
       imageContentBlocks,
       [],
