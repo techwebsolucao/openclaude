@@ -2,39 +2,39 @@
 import { getInitialMainLoopModel } from '../../bootstrap/state.js'
 import { getAdditionalModelOptionsCacheScope } from '../../services/api/providerConfig.js'
 import {
-  isClaudeAISubscriber,
-  isMaxSubscriber,
-  isTeamPremiumSubscriber,
+    isClaudeAISubscriber,
+    isMaxSubscriber,
+    isTeamPremiumSubscriber,
 } from '../auth.js'
-import { getModelStrings } from './modelStrings.js'
+import { getGlobalConfig } from '../config.js'
+import { has1mContext } from '../context.js'
 import {
-  COST_TIER_3_15,
-  COST_HAIKU_35,
-  COST_HAIKU_45,
-  formatModelPricing,
+    COST_HAIKU_35,
+    COST_HAIKU_45,
+    COST_TIER_3_15,
+    formatModelPricing,
 } from '../modelCost.js'
+import { getActiveOpenAIModelOptionsCache } from '../providerProfiles.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
-import { getAPIProvider } from './providers.js'
-import { isModelAllowed } from './modelAllowlist.js'
 import {
-  getCanonicalName,
-  getClaudeAiUserDefaultModelDescription,
-  getDefaultSonnetModel,
-  getDefaultOpusModel,
-  getDefaultHaikuModel,
-  getDefaultMainLoopModelSetting,
-  getMarketingNameForModel,
-  getUserSpecifiedModelSetting,
-  isOpus1mMergeEnabled,
-  getOpus46PricingSuffix,
-  renderDefaultModelSetting,
-  type ModelSetting,
+    getCanonicalName,
+    getClaudeAiUserDefaultModelDescription,
+    getDefaultHaikuModel,
+    getDefaultMainLoopModelSetting,
+    getDefaultOpusModel,
+    getDefaultSonnetModel,
+    getMarketingNameForModel,
+    getOpus46PricingSuffix,
+    getUserSpecifiedModelSetting,
+    isOpus1mMergeEnabled,
+    renderDefaultModelSetting,
+    type ModelSetting,
 } from './model.js'
-import { has1mContext } from '../context.js'
-import { getGlobalConfig } from '../config.js'
-import { getActiveOpenAIModelOptionsCache } from '../providerProfiles.js'
+import { isModelAllowed } from './modelAllowlist.js'
+import { getModelStrings } from './modelStrings.js'
 import { getCachedOllamaModelOptions, isOllamaProvider } from './ollamaModels.js'
+import { getAPIProvider } from './providers.js'
 
 // @[MODEL LAUNCH]: Update all the available and default model option strings below.
 
@@ -665,6 +665,12 @@ export function getModelOptions(fastMode = false): ModelOption[] {
 }
 
 /**
+ * Sentinel value used by ModelPicker to indicate "enter model name manually".
+ * Intercepted in ModelPickerWrapper before being passed to setAppState.
+ */
+export const TYPE_CUSTOM_MODEL_SENTINEL = '__type_custom__'
+
+/**
  * Filter model options by the availableModels allowlist.
  * Always preserves the "Default" option (value: null).
  */
@@ -677,11 +683,21 @@ function filterModelOptionsByAllowlist(options: ModelOption[]): ModelOption[] {
       opt.value === null || (opt.value !== null && isModelAllowed(opt.value)),
   )
 
+  // Always append the manual-entry option so users can type any model ID.
+  const withCustomEntry = [
+    ...filtered,
+    {
+      value: TYPE_CUSTOM_MODEL_SENTINEL,
+      label: 'Type model name…',
+      description: 'Enter any model ID manually (e.g. deepseek/deepseek-chat)',
+    },
+  ]
+
   // Select state uses option values as identity keys. If two entries share the
   // same value (e.g. provider-specific aliases collapsing to one model ID),
   // navigation/focus can become inconsistent and appear as duplicate rendering.
   const seen = new Set<string>()
-  return filtered.filter(opt => {
+  return withCustomEntry.filter(opt => {
     const key = String(opt.value)
     if (seen.has(key)) {
       return false

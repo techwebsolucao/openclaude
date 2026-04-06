@@ -21,6 +21,10 @@ import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultMode
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 import { getAdditionalModelOptionsCacheScope } from '../../services/api/providerConfig.js';
+import { TYPE_CUSTOM_MODEL_SENTINEL } from '../../utils/model/modelOptions.js';
+import { Box, Text } from '../../ink.js';
+import TextInput from '../../components/TextInput.js';
+import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 function ModelPickerWrapper(t0) {
   const $ = _c(17);
   const {
@@ -30,6 +34,59 @@ function ModelPickerWrapper(t0) {
   const mainLoopModelForSession = useAppState(_temp2);
   const isFastMode = useAppState(_temp3);
   const setAppState = useSetAppState();
+  const { columns } = useTerminalSize();
+  const [customMode, setCustomMode] = React.useState(false);
+  const [customValue, setCustomValue] = React.useState('');
+  const [customCursor, setCustomCursor] = React.useState(0);
+  const [customError, setCustomError] = React.useState<string | null>(null);
+
+  // Handle Enter for manual model name input
+  const handleCustomSubmit = React.useCallback(async (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setCustomError('Please enter a model name.');
+      return;
+    }
+    if (!isModelAllowed(trimmed)) {
+      setCustomError(`Model '${trimmed}' is not available. Your organization restricts model selection.`);
+      return;
+    }
+    try {
+      const { valid, error: err } = await validateModel(trimmed);
+      if (!valid) {
+        setCustomError(err || `Model '${trimmed}' not found`);
+        return;
+      }
+    } catch {
+      // Accept unvalidatable models (e.g. OpenRouter) as-is
+    }
+    setAppState(prev => ({ ...prev, mainLoopModel: trimmed, mainLoopModelForSession: null }));
+    onDone(`Set model to ${chalk.bold(trimmed)}`);
+  }, [onDone, setAppState]);
+
+  if (customMode) {
+    return (
+      <Box flexDirection="column" gap={1} paddingLeft={1}>
+        <Text bold>Type model name</Text>
+        <Text dimColor>Enter the full model ID (e.g. <Text bold>deepseek/deepseek-chat</Text>)</Text>
+        <TextInput
+          value={customValue}
+          onChange={v => { setCustomValue(v); setCustomError(null); }}
+          onSubmit={handleCustomSubmit}
+          placeholder="provider/model-name"
+          columns={Math.max(40, columns - 6)}
+          cursorOffset={customCursor}
+          onChangeCursorOffset={setCustomCursor}
+          focus
+          showCursor
+        />
+        {customError
+          ? <Text color="red">{customError}</Text>
+          : <Text dimColor>Enter to confirm · Esc to go back to list</Text>}
+      </Box>
+    );
+  }
+
   let t1;
   if ($[0] !== mainLoopModel || $[1] !== onDone) {
     t1 = function handleCancel() {
@@ -51,6 +108,10 @@ function ModelPickerWrapper(t0) {
   let t2;
   if ($[3] !== isFastMode || $[4] !== mainLoopModel || $[5] !== onDone || $[6] !== setAppState) {
     t2 = function handleSelect(model, effort) {
+      if (model === TYPE_CUSTOM_MODEL_SENTINEL) {
+        setCustomMode(true);
+        return;
+      }
       logEvent("tengu_model_command_menu", {
         action: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         from_model: mainLoopModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

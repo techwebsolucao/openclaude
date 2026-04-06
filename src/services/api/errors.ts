@@ -1,54 +1,54 @@
 import {
-  APIConnectionError,
-  APIConnectionTimeoutError,
-  APIError,
+    APIConnectionError,
+    APIConnectionTimeoutError,
+    APIError,
 } from '@anthropic-ai/sdk'
 import type {
-  BetaMessage,
-  BetaStopReason,
+    BetaMessage,
+    BetaStopReason,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import { AFK_MODE_BETA_HEADER } from 'src/constants/betas.js'
 import type { SDKAssistantMessageError } from 'src/entrypoints/agentSdkTypes.js'
 import type {
-  AssistantMessage,
-  Message,
-  UserMessage,
+    AssistantMessage,
+    Message,
+    UserMessage,
 } from 'src/types/message.js'
 import {
-  getAnthropicApiKeyWithSource,
-  getClaudeAIOAuthTokens,
-  getOauthAccountInfo,
-  isClaudeAISubscriber,
+    getAnthropicApiKeyWithSource,
+    getClaudeAIOAuthTokens,
+    getOauthAccountInfo,
+    isClaudeAISubscriber,
 } from 'src/utils/auth.js'
 import {
-  createAssistantAPIErrorMessage,
-  NO_RESPONSE_REQUESTED,
+    createAssistantAPIErrorMessage,
+    NO_RESPONSE_REQUESTED,
 } from 'src/utils/messages.js'
 import {
-  getDefaultMainLoopModelSetting,
-  isNonCustomOpusModel,
+    getDefaultMainLoopModelSetting,
+    isNonCustomOpusModel,
 } from 'src/utils/model/model.js'
 import { getModelStrings } from 'src/utils/model/modelStrings.js'
 import { getAPIProvider } from 'src/utils/model/providers.js'
 import { getIsNonInteractiveSession } from '../../bootstrap/state.js'
 import {
-  API_PDF_MAX_PAGES,
-  PDF_TARGET_RAW_SIZE,
+    API_PDF_MAX_PAGES,
+    PDF_TARGET_RAW_SIZE,
 } from '../../constants/apiLimits.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { formatFileSize } from '../../utils/format.js'
 import { ImageResizeError } from '../../utils/imageResizer.js'
 import { ImageSizeError } from '../../utils/imageValidation.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../analytics/index.js'
 import {
-  type ClaudeAILimits,
-  getRateLimitErrorMessage,
-  type OverageDisabledReason,
+    type ClaudeAILimits,
+    getRateLimitErrorMessage,
+    type OverageDisabledReason,
 } from '../claudeAiLimits.js'
-import { shouldProcessRateLimits } from '../rateLimitMocking.js' // Used for /mock-limits command
+import { shouldProcessRateLimits } from '../rateLimitMocking.js'; // Used for /mock-limits command
 import { extractConnectionErrorDetails, formatAPIError } from './errorUtils.js'
 
 export const API_ERROR_MESSAGE_PREFIX = 'API Error'
@@ -882,6 +882,17 @@ export function getAssistantMessageFromError(
       return createAssistantAPIErrorMessage({
         error: 'authentication_failed',
         content: CCR_AUTH_ERROR_MESSAGE,
+      })
+    }
+
+    // When using OpenRouter / OpenAI-compatible provider, the 401 means the
+    // provider API key is bad, not Anthropic credentials.
+    const provider = getAPIProvider()
+    if (provider === 'openai' || isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)) {
+      const baseUrl = process.env.OPENAI_BASE_URL ?? 'your provider'
+      return createAssistantAPIErrorMessage({
+        error: 'authentication_failed',
+        content: `Invalid API key for ${baseUrl}. Run /logout then reconfigure your provider, or check your API key.`,
       })
     }
 

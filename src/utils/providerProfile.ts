@@ -1,19 +1,20 @@
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
-  DEFAULT_CODEX_BASE_URL,
-  DEFAULT_OPENAI_BASE_URL,
-  isCodexBaseUrl,
-  resolveCodexApiCredentials,
-  resolveProviderRequest,
+    DEFAULT_CODEX_BASE_URL,
+    DEFAULT_OPENAI_BASE_URL,
+    isCodexBaseUrl,
+    resolveCodexApiCredentials,
+    resolveProviderRequest,
 } from '../services/api/providerConfig.ts'
-import {
-  getGoalDefaultOpenAIModel,
-  normalizeRecommendationGoal,
-  type RecommendationGoal,
-} from './providerRecommendation.ts'
+import { getClaudeConfigHomeDir } from './envUtils.js'
 import { readGeminiAccessToken } from './geminiCredentials.ts'
 import { getOllamaChatBaseUrl } from './providerDiscovery.ts'
+import {
+    getGoalDefaultOpenAIModel,
+    normalizeRecommendationGoal,
+    type RecommendationGoal,
+} from './providerRecommendation.ts'
 
 export const PROFILE_FILE_NAME = '.openclaude-profile.json'
 export const DEFAULT_GEMINI_BASE_URL =
@@ -85,7 +86,10 @@ function resolveProfileFilePath(options?: ProfileFileLocation): string {
     return options.filePath
   }
 
-  return resolve(options?.cwd ?? process.cwd(), PROFILE_FILE_NAME)
+  // Default to global ~/.openclaude/ so login persists across repos.
+  // Explicit { cwd } still uses the project-local path (for scripts/tests).
+  const dir = options?.cwd ?? getClaudeConfigHomeDir()
+  return resolve(dir, PROFILE_FILE_NAME)
 }
 
 export function isProviderProfile(value: unknown): value is ProviderProfile {
@@ -391,6 +395,9 @@ export function saveProfileFile(
   options?: ProfileFileLocation,
 ): string {
   const filePath = resolveProfileFilePath(options)
+  // Ensure the directory exists (e.g. ~/.openclaude/ on first run)
+  const dir = filePath.substring(0, filePath.lastIndexOf('/'))
+  if (dir) mkdirSync(dir, { recursive: true })
   writeFileSync(filePath, JSON.stringify(profileFile, null, 2), {
     encoding: 'utf8',
     mode: 0o600,

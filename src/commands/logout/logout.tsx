@@ -6,7 +6,8 @@ import { getGroveNoticeConfig, getGroveSettings } from '../../services/api/grove
 import { clearPolicyLimitsCache } from '../../services/policyLimits/index.js';
 // flushTelemetry is loaded lazily to avoid pulling in ~1.1MB of OpenTelemetry at startup
 import { clearRemoteManagedSettingsCache } from '../../services/remoteManagedSettings/index.js';
-import { getClaudeAIOAuthTokens, removeApiKey } from '../../utils/auth.js';
+import { getClaudeAIOAuthTokens, removeApiKey } from '../../utils/auth.js'
+import { deleteProfileFile } from '../../utils/providerProfile.js';
 import { clearBetasCaches } from '../../utils/betas.js';
 import { saveGlobalConfig } from '../../utils/config.js';
 import { gracefulShutdownSync } from '../../utils/gracefulShutdown.js';
@@ -22,6 +23,26 @@ export async function performLogout({
   } = await import('../../utils/telemetry/instrumentation.js');
   await flushTelemetry();
   await removeApiKey();
+
+  // Clear OpenRouter / OpenAI provider profile if present
+  try {
+    deleteProfileFile()
+  } catch {
+    // profile file might not exist — that's fine
+  }
+  // Clear provider env vars so the current process doesn't keep the session
+  for (const key of [
+    'CLAUDE_CODE_USE_OPENAI',
+    'CLAUDE_CODE_USE_GEMINI',
+    'OPENAI_API_KEY',
+    'OPENAI_BASE_URL',
+    'OPENAI_MODEL',
+    'GEMINI_API_KEY',
+    'GEMINI_MODEL',
+    'GEMINI_BASE_URL',
+  ] as const) {
+    delete process.env[key]
+  }
 
   // Wipe all secure storage data on logout
   const secureStorage = getSecureStorage();

@@ -264,6 +264,8 @@ import { useDeprecationWarningNotification } from 'src/hooks/notifs/useDeprecati
 import { useNpmDeprecationNotification } from 'src/hooks/notifs/useNpmDeprecationNotification.js';
 import { useIDEStatusIndicator } from 'src/hooks/notifs/useIDEStatusIndicator.js';
 import { useModelMigrationNotifications } from 'src/hooks/notifs/useModelMigrationNotifications.js';
+import { resolveMainLoopProvider } from '../services/api/agentRouting.js'
+import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
 import { useCanSwitchToExistingSubscription } from 'src/hooks/notifs/useCanSwitchToExistingSubscription.js';
 import { useTeammateLifecycleNotification } from 'src/hooks/notifs/useTeammateShutdownNotification.js';
 import { useFastModeNotification } from 'src/hooks/notifs/useFastModeNotification.js';
@@ -2441,7 +2443,8 @@ export function REPL({
         } : s.agentDefinitions,
         customSystemPrompt,
         appendSystemPrompt,
-        refreshTools: computeTools
+        refreshTools: computeTools,
+        providerOverride: resolveMainLoopProvider(getSettings_DEPRECATED(), s.toolPermissionContext?.mode) ?? undefined,
       },
       getAppState: () => store.getState(),
       setAppState,

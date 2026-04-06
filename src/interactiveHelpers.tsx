@@ -113,7 +113,8 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   let onboardingShown = false;
 
   // Skip onboarding dialog for third-party providers (no Anthropic account needed)
-  if (usesAnthropicSetup && (!config.theme || !config.hasCompletedOnboarding) // always show onboarding at least once
+  // Also skip in claudeInChrome (VS Code extension) — OpenRouter CLI setup is CLI-only
+  if (usesAnthropicSetup && !claudeInChrome && (!config.theme || !config.hasCompletedOnboarding) // always show onboarding at least once
   ) {
     onboardingShown = true;
     const {
@@ -136,7 +137,8 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
   if (!isEnvTruthy(process.env.CLAUBBIT)) {
     // Skip trust dialog UI for third-party providers (no Anthropic auth), but still
     // run trust state initialization below so the REPL mounts correctly.
-    if (usesAnthropicSetup && !checkHasTrustDialogAccepted()) {
+    // Re-check after onboarding in case it configured a third-party provider.
+    if (usesAnthropicAccountFlow() && !checkHasTrustDialogAccepted()) {
       const {
         TrustDialog
       } = await import('./components/TrustDialog/TrustDialog.js');
@@ -159,7 +161,7 @@ export async function showSetupScreens(root: Root, permissionMode: PermissionMod
     void getSystemContext();
 
     // Skip MCP approval dialogs for third-party providers (no interactive auth prompts)
-    if (usesAnthropicSetup) {
+    if (usesAnthropicAccountFlow()) {
       // If settings are valid, check for any mcp.json servers that need approval
       const {
         errors: allErrors
