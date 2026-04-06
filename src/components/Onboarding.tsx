@@ -14,12 +14,14 @@ import { PreflightStep } from '../utils/preflightChecks.js';
 import type { ThemeSetting } from '../utils/theme.js';
 import { ApproveApiKey } from './ApproveApiKey.js';
 import { ConsoleOAuthFlow } from './ConsoleOAuthFlow.js';
+import { OpenRouterSetup } from './OpenRouterSetup.js';
 import { Select } from './CustomSelect/select.js';
 import { WelcomeV2 } from './LogoV2/WelcomeV2.js';
 import { PressEnterToContinue } from './PressEnterToContinue.js';
 import { ThemePicker } from './ThemePicker.js';
 import { OrderedList } from './ui/OrderedList.js';
 type StepId = 'preflight' | 'theme' | 'oauth' | 'api-key' | 'security' | 'terminal-setup';
+type ProviderChoice = 'openrouter' | 'anthropic'
 interface OnboardingStep {
   id: StepId;
   component: React.ReactNode;
@@ -134,7 +136,7 @@ export function Onboarding({
     steps.push({
       id: 'oauth',
       component: <SkippableStep skip={skipOAuth} onSkip={goToNextStep}>
-          <ConsoleOAuthFlow onDone={goToNextStep} />
+          <ProviderChooserStep onDone={goToNextStep} />
         </SkippableStep>
     });
   }
@@ -211,6 +213,30 @@ export function Onboarding({
       </Box>
     </Box>;
 }
+export function ProviderChooserStep({ onDone }: { onDone(): void }): React.ReactNode {
+  const [choice, setChoice] = useState<ProviderChoice | null>(null);
+
+  if (choice === 'openrouter') {
+    return <OpenRouterSetup onDone={onDone} />;
+  }
+  if (choice === 'anthropic') {
+    return <ConsoleOAuthFlow onDone={onDone} />;
+  }
+
+  return (
+    <Box flexDirection="column" gap={1} paddingLeft={1}>
+      <Text bold>How do you want to connect?</Text>
+      <Select
+        options={[
+          { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' },
+          { label: 'Anthropic / Claude account', value: 'anthropic' },
+        ]}
+        onChange={(v) => setChoice(v as ProviderChoice)}
+      />
+    </Box>
+  );
+}
+
 export function SkippableStep(t0) {
   const $ = _c(4);
   const {

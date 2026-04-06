@@ -65,6 +65,7 @@ import {
   getMainLoopModel,
   parseUserSpecifiedModel,
 } from './utils/model/model.js'
+import { resolveMainLoopProvider } from './services/api/agentRouting.js'
 import { loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js'
 import {
   type ProcessUserInputContext,
@@ -363,6 +364,7 @@ export class QueryEngine {
         agentDefinitions: { activeAgents: agents, allAgents: [] },
         theme: resolveThemeSetting(getGlobalConfig().theme),
         maxBudgetUsd,
+        providerOverride: resolveMainLoopProvider(getSettings_DEPRECATED()),
       },
       getAppState,
       setAppState,
@@ -511,6 +513,7 @@ export class QueryEngine {
         theme: resolveThemeSetting(getGlobalConfig().theme),
         agentDefinitions: { activeAgents: agents, allAgents: [] },
         maxBudgetUsd,
+        providerOverride: processUserInputContext.options.providerOverride,
       },
       getAppState,
       setAppState,

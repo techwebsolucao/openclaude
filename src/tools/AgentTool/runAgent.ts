@@ -14,6 +14,7 @@ import { getSystemContext, getUserContext } from '../../context.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
 import { query } from '../../query.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
+import { resolveAgentProvider } from '../../services/api/agentRouting.js'
 import { getDumpPromptsPath } from '../../services/api/dumpPrompts.js'
 import { cleanupAgentTracking } from '../../services/api/promptCacheBreakDetection.js'
 import {
@@ -25,8 +26,8 @@ import type {
   MCPServerConnection,
   ScopedMcpServerConfig,
 } from '../../services/mcp/types.js'
-import type { Tool, Tools, ToolUseContext } from '../../Tool.js'
 import { killShellTasksForAgent } from '../../tasks/LocalShellTask/killShellTasks.js'
+import type { Tool, Tools, ToolUseContext } from '../../Tool.js'
 import type { Command } from '../../types/command.js'
 import type { AgentId } from '../../types/ids.js'
 import type {
@@ -52,13 +53,11 @@ import {
   type CacheSafeParams,
   createSubagentContext,
 } from '../../utils/forkedAgent.js'
+import { executeSubagentStartHooks } from '../../utils/hooks.js'
 import { registerFrontmatterHooks } from '../../utils/hooks/registerFrontmatterHooks.js'
 import { clearSessionHooks } from '../../utils/hooks/sessionHooks.js'
-import { executeSubagentStartHooks } from '../../utils/hooks.js'
 import { createUserMessage } from '../../utils/messages.js'
 import { getAgentModel } from '../../utils/model/agent.js'
-import { resolveAgentProvider } from '../../services/api/agentRouting.js'
-import { getInitialSettings } from '../../utils/settings/settings.js'
 import type { ModelAlias } from '../../utils/model/aliases.js'
 import {
   clearAgentTranscriptSubdir,
@@ -70,6 +69,7 @@ import {
   isRestrictedToPluginOnly,
   isSourceAdminTrusted,
 } from '../../utils/settings/pluginOnlyPolicy.js'
+import { getSettingsWithSources } from '../../utils/settings/settings.js'
 import {
   asSystemPrompt,
   type SystemPrompt,
@@ -349,11 +349,11 @@ export async function* runAgent({
     permissionMode,
   )
 
-  // Resolve per-agent provider routing from settings
+  // Resolve per-agent provider routing from settings (fresh read to avoid stale session cache)
   const providerOverride = resolveAgentProvider(
     agentName,
     agentDefinition.agentType,
-    getInitialSettings(),
+    getSettingsWithSources().effective,
   )
   const effectiveModel = providerOverride ? providerOverride.model : resolvedAgentModel
 

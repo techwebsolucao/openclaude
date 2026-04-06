@@ -41,6 +41,7 @@ const featureFlags: Record<string, boolean> = {
   BUDDY: true,
   CHICAGO_MCP: false,
   COWORKER_TYPE_TELEMETRY: false,
+  BUILTIN_EXPLORE_PLAN_AGENTS: true,
 }
 
 const result = await Bun.build({

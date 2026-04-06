@@ -73,3 +73,35 @@ export function resolveAgentProvider(
     apiKey: modelConfig.api_key,
   }
 }
+
+/**
+ * Resolve provider override for the main loop based on agent routing config.
+ * When `mode` is 'plan', checks the "Plan" routing key first before falling
+ * back to "general-purpose" / "default".
+ */
+export function resolveMainLoopProvider(
+  settings: SettingsJson | null,
+  mode?: string,
+): ProviderOverride | null {
+  if (!settings) return null
+
+  const routing = settings.agentRouting
+  const models = settings.agentModels
+  if (!routing || !models) return null
+
+  // When in plan mode, try "Plan" key first; otherwise general-purpose / default
+  const modelName =
+    (mode === 'plan' && routing['Plan']) ||
+    routing['general-purpose'] ||
+    routing['default']
+  if (!modelName) return null
+
+  const modelConfig = models[modelName]
+  if (!modelConfig) return null
+
+  return {
+    model: modelName,
+    baseURL: modelConfig.base_url,
+    apiKey: modelConfig.api_key,
+  }
+}

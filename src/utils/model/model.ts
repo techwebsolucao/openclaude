@@ -28,6 +28,7 @@ import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
 import { capitalize } from '../stringUtils.js'
+import { resolveMainLoopProvider } from '../../services/api/agentRouting.js'
 
 export type ModelShortName = string
 export type ModelName = string
@@ -75,6 +76,13 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
     specifiedModel = modelOverride
   } else {
     const settings = getSettings_DEPRECATED() || {}
+
+    // Check agentRouting for "default" or "general-purpose" before regular settings.model
+    const routingOverride = resolveMainLoopProvider(settings)
+    if (routingOverride) {
+      return routingOverride.model
+    }
+
     // Read the model env var that matches the active provider to prevent
     // cross-provider leaks (e.g. ANTHROPIC_MODEL sent to the OpenAI API).
     const provider = getAPIProvider()

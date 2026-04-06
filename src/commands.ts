@@ -2,38 +2,38 @@
 import addDir from './commands/add-dir/index.js'
 import autofixPr from './commands/autofix-pr/index.js'
 import backfillSessions from './commands/backfill-sessions/index.js'
+import breakCache from './commands/break-cache/index.js'
 import btw from './commands/btw/index.js'
-import goodClaude from './commands/good-claude/index.js'
-import issue from './commands/issue/index.js'
-import feedback from './commands/feedback/index.js'
 import clear from './commands/clear/index.js'
 import color from './commands/color/index.js'
-import commit from './commands/commit.js'
-import copy from './commands/copy/index.js'
-import desktop from './commands/desktop/index.js'
 import commitPushPr from './commands/commit-push-pr.js'
+import commit from './commands/commit.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
 import { context, contextNonInteractive } from './commands/context/index.js'
+import copy from './commands/copy/index.js'
 import cost from './commands/cost/index.js'
-import diff from './commands/diff/index.js'
-import dream from './commands/dream/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
+import desktop from './commands/desktop/index.js'
+import diff from './commands/diff/index.js'
 import doctor from './commands/doctor/index.js'
-import onboardGithub from './commands/onboard-github/index.js'
-import memory from './commands/memory/index.js'
+import dream from './commands/dream/index.js'
+import feedback from './commands/feedback/index.js'
+import goodClaude from './commands/good-claude/index.js'
 import help from './commands/help/index.js'
 import ide from './commands/ide/index.js'
-import init from './commands/init.js'
 import initVerifiers from './commands/init-verifiers.js'
+import init from './commands/init.js'
+import installGitHubApp from './commands/install-github-app/index.js'
+import installSlackApp from './commands/install-slack-app/index.js'
+import issue from './commands/issue/index.js'
 import keybindings from './commands/keybindings/index.js'
 import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
-import installGitHubApp from './commands/install-github-app/index.js'
-import installSlackApp from './commands/install-slack-app/index.js'
-import breakCache from './commands/break-cache/index.js'
 import mcp from './commands/mcp/index.js'
+import memory from './commands/memory/index.js'
 import mobile from './commands/mobile/index.js'
+import onboardGithub from './commands/onboard-github/index.js'
 import onboarding from './commands/onboarding/index.js'
 import pr_comments from './commands/pr_comments/index.js'
 import releaseNotes from './commands/release-notes/index.js'
@@ -52,14 +52,14 @@ const agentsPlatform =
     ? require('./commands/agents-platform/index.js').default
     : null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import securityReview from './commands/security-review.js'
-import bughunter from './commands/bughunter/index.js'
-import terminalSetup from './commands/terminalSetup/index.js'
-import usage from './commands/usage/index.js'
-import theme from './commands/theme/index.js'
-import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
 import { isBuddyEnabled } from './buddy/feature.js'
+import bughunter from './commands/bughunter/index.js'
+import securityReview from './commands/security-review.js'
+import terminalSetup from './commands/terminalSetup/index.js'
+import theme from './commands/theme/index.js'
+import usage from './commands/usage/index.js'
+import vim from './commands/vim/index.js'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactive =
@@ -124,71 +124,80 @@ const buddy = isBuddyEnabled()
     ).default
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import thinkback from './commands/thinkback/index.js'
-import thinkbackPlay from './commands/thinkback-play/index.js'
-import permissions from './commands/permissions/index.js'
-import plan from './commands/plan/index.js'
-import fast from './commands/fast/index.js'
-import passes from './commands/passes/index.js'
-import privacySettings from './commands/privacy-settings/index.js'
-import provider from './commands/provider/index.js'
-import hooks from './commands/hooks/index.js'
-import files from './commands/files/index.js'
-import branch from './commands/branch/index.js'
-import agents from './commands/agents/index.js'
-import plugin from './commands/plugin/index.js'
-import reloadPlugins from './commands/reload-plugins/index.js'
-import rewind from './commands/rewind/index.js'
-import heapDump from './commands/heapdump/index.js'
-import mockLimits from './commands/mock-limits/index.js'
-import bridgeKick from './commands/bridge-kick.js'
-import version from './commands/version.js'
-import summary from './commands/summary/index.js'
-import {
-  resetLimits,
-  resetLimitsNonInteractive,
-} from './commands/reset-limits/index.js'
-import antTrace from './commands/ant-trace/index.js'
-import perfIssue from './commands/perf-issue/index.js'
-import sandboxToggle from './commands/sandbox-toggle/index.js'
-import chrome from './commands/chrome/index.js'
-import stickers from './commands/stickers/index.js'
-import advisor from './commands/advisor.js'
-import { logError } from './utils/log.js'
-import { toError } from './utils/errors.js'
-import { logForDebugging } from './utils/debug.js'
-import {
-  getSkillDirCommands,
-  clearSkillCaches,
-  getDynamicSkills,
-} from './skills/loadSkillsDir.js'
-import { getBundledSkills } from './skills/bundledSkills.js'
-import { getBuiltinPluginSkillCommands } from './plugins/builtinPlugins.js'
-import {
-  getPluginCommands,
-  clearPluginCommandCache,
-  getPluginSkills,
-  clearPluginSkillsCache,
-} from './utils/plugins/loadPluginCommands.js'
 import memoize from 'lodash-es/memoize.js'
-import { isUsing3PServices, isClaudeAISubscriber } from './utils/auth.js'
-import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
+import advisor from './commands/advisor.js'
+import agents from './commands/agents/index.js'
+import antTrace from './commands/ant-trace/index.js'
+import branch from './commands/branch/index.js'
+import bridgeKick from './commands/bridge-kick.js'
+import chrome from './commands/chrome/index.js'
+import debugToolCall from './commands/debug-tool-call/index.js'
+import effort from './commands/effort/index.js'
 import env from './commands/env/index.js'
 import exit from './commands/exit/index.js'
 import exportCommand from './commands/export/index.js'
-import model from './commands/model/index.js'
-import tag from './commands/tag/index.js'
-import outputStyle from './commands/output-style/index.js'
-import remoteEnv from './commands/remote-env/index.js'
-import upgrade from './commands/upgrade/index.js'
 import {
   extraUsage,
   extraUsageNonInteractive,
 } from './commands/extra-usage/index.js'
+import fast from './commands/fast/index.js'
+import files from './commands/files/index.js'
+import heapDump from './commands/heapdump/index.js'
+import hooks from './commands/hooks/index.js'
+import mockLimits from './commands/mock-limits/index.js'
+import model from './commands/model/index.js'
+import oauthRefresh from './commands/oauth-refresh/index.js'
+import outputStyle from './commands/output-style/index.js'
+import passes from './commands/passes/index.js'
+import perfIssue from './commands/perf-issue/index.js'
+import permissions from './commands/permissions/index.js'
+import plan from './commands/plan/index.js'
+import plugin from './commands/plugin/index.js'
+import privacySettings from './commands/privacy-settings/index.js'
+import provider from './commands/provider/index.js'
 import rateLimitOptions from './commands/rate-limit-options/index.js'
-import statusline from './commands/statusline.js'
-import effort from './commands/effort/index.js'
+import reloadPlugins from './commands/reload-plugins/index.js'
+import remoteEnv from './commands/remote-env/index.js'
+import {
+  resetLimits,
+  resetLimitsNonInteractive,
+} from './commands/reset-limits/index.js'
+import rewind from './commands/rewind/index.js'
+import routing from './commands/routing/index.js'
+import sandboxToggle from './commands/sandbox-toggle/index.js'
 import stats from './commands/stats/index.js'
+import statusline from './commands/statusline.js'
+import stickers from './commands/stickers/index.js'
+import summary from './commands/summary/index.js'
+import tag from './commands/tag/index.js'
+import thinkbackPlay from './commands/thinkback-play/index.js'
+import thinkback from './commands/thinkback/index.js'
+import upgrade from './commands/upgrade/index.js'
+import version from './commands/version.js'
+import { getBuiltinPluginSkillCommands } from './plugins/builtinPlugins.js'
+import { getBundledSkills } from './skills/bundledSkills.js'
+import {
+  clearSkillCaches,
+  getDynamicSkills,
+  getSkillDirCommands,
+} from './skills/loadSkillsDir.js'
+import {
+  type Command,
+  getCommandName,
+  isCommandEnabled,
+} from './types/command.js'
+import { isClaudeAISubscriber, isUsing3PServices } from './utils/auth.js'
+import { logForDebugging } from './utils/debug.js'
+import { toError } from './utils/errors.js'
+import { logError } from './utils/log.js'
+import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
+import {
+  clearPluginCommandCache,
+  clearPluginSkillsCache,
+  getPluginCommands,
+  getPluginSkills,
+} from './utils/plugins/loadPluginCommands.js'
+import { getSettingSourceName } from './utils/settings/constants.js'
 // insights.ts is 113KB (3200 lines, includes diffLines/html rendering). Lazy
 // shim defers the heavy module until /insights is actually invoked.
 const usageReport: Command = {
@@ -204,16 +213,9 @@ const usageReport: Command = {
     return real.getPromptForCommand(args, context)
   },
 }
-import oauthRefresh from './commands/oauth-refresh/index.js'
-import debugToolCall from './commands/debug-tool-call/index.js'
-import { getSettingSourceName } from './utils/settings/constants.js'
-import {
-  type Command,
-  getCommandName,
-  isCommandEnabled,
-} from './types/command.js'
 
 // Re-export types from the centralized location
+export { getCommandName, isCommandEnabled } from './types/command.js'
 export type {
   Command,
   CommandBase,
@@ -221,9 +223,8 @@ export type {
   LocalCommandResult,
   LocalJSXCommandContext,
   PromptCommand,
-  ResumeEntrypoint,
+  ResumeEntrypoint
 } from './types/command.js'
-export { getCommandName, isCommandEnabled } from './types/command.js'
 
 // Commands that get eliminated from the external build
 export const INTERNAL_ONLY_COMMANDS = [
@@ -293,6 +294,7 @@ const COMMANDS = memoize((): Command[] => [
   memory,
   mobile,
   model,
+  routing,
   onboardGithub,
   outputStyle,
   remoteEnv,
@@ -341,7 +343,7 @@ const COMMANDS = memoize((): Command[] => [
   hooks,
   exportCommand,
   sandboxToggle,
-  ...(!isUsing3PServices() ? [logout, login()] : []),
+  ...(!(process.env.CLAUDE_CODE_USE_BEDROCK || process.env.CLAUDE_CODE_USE_VERTEX || process.env.CLAUDE_CODE_USE_FOUNDRY || process.env.CLAUDE_CODE_USE_GITHUB) ? [logout, login()] : []),
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,

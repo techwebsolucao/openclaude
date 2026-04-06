@@ -1,5 +1,6 @@
 import { feature } from 'bun:bundle'
 import * as React from 'react'
+import { useState } from 'react'
 
 import { resetCostState } from '../../bootstrap/state.js'
 import {
@@ -12,14 +13,17 @@ import {
   ConsoleOAuthFlow,
   type ConsoleOAuthFlowResult,
 } from '../../components/ConsoleOAuthFlow.js'
+import { OpenRouterSetup } from '../../components/OpenRouterSetup.js'
+import { Select } from '../../components/CustomSelect/select.js'
 import { Dialog } from '../../components/design-system/Dialog.js'
 import { useMainLoopModel } from '../../hooks/useMainLoopModel.js'
-import { Text } from '../../ink.js'
+import { Box, Text } from '../../ink.js'
 import { refreshGrowthBookAfterAuthChange } from '../../services/analytics/growthbook.js'
 import { refreshPolicyLimits } from '../../services/policyLimits/index.js'
 import { refreshRemoteManagedSettings } from '../../services/remoteManagedSettings/index.js'
 import type { LocalJSXCommandOnDone } from '../../types/command.js'
 import { stripSignatureBlocks } from '../../utils/messages.js'
+import { applyConfigEnvironmentVariables } from '../../utils/managedEnv.js'
 import {
   checkAndDisableAutoModeIfNeeded,
   checkAndDisableBypassPermissionsIfNeeded,
@@ -27,6 +31,8 @@ import {
   resetBypassPermissionsCheck,
 } from '../../utils/permissions/bypassPermissionsKillswitch.js'
 import { resetUserCache } from '../../utils/user.js'
+
+type ProviderChoice = 'openrouter' | 'anthropic'
 
 type LoginCompletion =
   | ConsoleOAuthFlowResult
@@ -63,6 +69,11 @@ export async function call(
         void refreshPolicyLimits()
         resetUserCache()
         refreshGrowthBookAfterAuthChange()
+
+        // Re-apply env vars from settings (including .claude/settings.json provider
+        // config) so any changes since startup are picked up, and the active
+        // provider profile is re-applied with the new credentials.
+        applyConfigEnvironmentVariables()
 
         // Clear any stale trusted device token from a previous account before
         // re-enrolling to avoid sending the old token while enrollment is
@@ -102,6 +113,7 @@ export function Login(props: {
   startingMessage?: string
 }): React.ReactNode {
   const mainLoopModel = useMainLoopModel()
+  const [choice, setChoice] = useState<ProviderChoice | null>(null)
 
   return (
     <Dialog
@@ -121,12 +133,36 @@ export function Login(props: {
         )
       }
     >
-      <ConsoleOAuthFlow
-        onDone={result =>
-          props.onDone(result ?? { type: 'cancel' }, mainLoopModel)
-        }
-        startingMessage={props.startingMessage}
-      />
+      {choice === 'anthropic' && (
+        <ConsoleOAuthFlow
+          onDone={result =>
+            props.onDone(result ?? { type: 'cancel' }, mainLoopModel)
+          }
+          startingMessage={props.startingMessage}
+        />
+      )}
+      {choice === 'openrouter' && (
+        <OpenRouterSetup
+          onDone={() =>
+            props.onDone(
+              { type: 'provider-setup', message: 'OpenRouter configured successfully' },
+              mainLoopModel,
+            )
+          }
+        />
+      )}
+      {!choice && (
+        <Box flexDirection="column" gap={1} paddingLeft={1}>
+          <Text bold>How do you want to connect?</Text>
+          <Select
+            options={[
+              { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' },
+              { label: 'Anthropic / Claude account', value: 'anthropic' },
+            ]}
+            onChange={v => setChoice(v as ProviderChoice)}
+          />
+        </Box>
+      )}
     </Dialog>
   )
 }
