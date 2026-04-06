@@ -1,34 +1,34 @@
 /* eslint-disable custom-rules/no-process-exit -- CLI subcommand handler intentionally exits */
 
 import {
-  clearAuthRelatedCaches,
-  performLogout,
+    clearAuthRelatedCaches,
+    performLogout,
 } from '../../commands/logout/logout.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../../services/analytics/index.js'
 import { getSSLErrorHint } from '../../services/api/errorUtils.js'
 import { fetchAndStoreClaudeCodeFirstTokenDate } from '../../services/api/firstTokenDate.js'
 import {
-  createAndStoreApiKey,
-  fetchAndStoreUserRoles,
-  refreshOAuthToken,
-  shouldUseClaudeAIAuth,
-  storeOAuthAccountInfo,
+    createAndStoreApiKey,
+    fetchAndStoreUserRoles,
+    refreshOAuthToken,
+    shouldUseClaudeAIAuth,
+    storeOAuthAccountInfo,
 } from '../../services/oauth/client.js'
 import { getOauthProfileFromOauthToken } from '../../services/oauth/getOauthProfile.js'
 import { OAuthService } from '../../services/oauth/index.js'
 import type { OAuthTokens } from '../../services/oauth/types.js'
 import {
-  clearOAuthTokenCache,
-  getAnthropicApiKeyWithSource,
-  getAuthTokenSource,
-  getOauthAccountInfo,
-  getSubscriptionType,
-  isUsing3PServices,
-  saveOAuthTokensIfNeeded,
-  validateForceLoginOrg,
+    clearOAuthTokenCache,
+    getAnthropicApiKeyWithSource,
+    getAuthTokenSource,
+    getOauthAccountInfo,
+    getSubscriptionType,
+    isUsing3PServices,
+    saveOAuthTokensIfNeeded,
+    validateForceLoginOrg,
 } from '../../utils/auth.js'
 import { saveGlobalConfig } from '../../utils/config.js'
 import { logForDebugging } from '../../utils/debug.js'
@@ -39,8 +39,8 @@ import { getAPIProvider } from '../../utils/model/providers.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 import {
-  buildAccountProperties,
-  buildAPIProviderProperties,
+    buildAccountProperties,
+    buildAPIProviderProperties,
 } from '../../utils/status.js'
 
 /**
@@ -325,6 +325,6 @@ export async function authLogout(): Promise<void> {
     process.stderr.write('Failed to log out.\n')
     process.exit(1)
   }
-  process.stdout.write('Successfully logged out from your Anthropic account.\n')
+  process.stdout.write('Successfully logged out from your OpenClaude account.\n')
   process.exit(0)
 }

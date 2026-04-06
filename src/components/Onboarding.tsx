@@ -100,7 +100,7 @@ export function Onboarding({
   const apiKeyNeedingApproval = useMemo(() => {
     // Add API key step if needed
     // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
-    // processes but ignored by Claude Code itself (see auth.ts).
+    // processes but ignored by OpenClaude itself (see auth.ts).
     if (!process.env.ANTHROPIC_API_KEY || isRunningOnHomespace() || !isAnthropicAuthEnabled()) {
       return '';
     }
@@ -148,7 +148,7 @@ export function Onboarding({
     steps.push({
       id: 'terminal-setup',
       component: <Box flexDirection="column" gap={1} paddingLeft={1}>
-          <Text bold>Use Claude Code&apos;s terminal setup?</Text>
+          <Text bold>Use OpenClaude&apos;s terminal setup?</Text>
           <Box flexDirection="column" width={70} gap={1}>
             <Text>
               For the optimal coding experience, enable the recommended settings
@@ -228,8 +228,7 @@ export function ProviderChooserStep({ onDone }: { onDone(): void }): React.React
       <Text bold>How do you want to connect?</Text>
       <Select
         options={[
-          { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' },
-          { label: 'Anthropic / Claude account', value: 'anthropic' },
+          { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' }
         ]}
         onChange={(v) => setChoice(v as ProviderChoice)}
       />

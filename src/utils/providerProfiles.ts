@@ -1,8 +1,8 @@
 import { randomBytes } from 'crypto'
 import {
-  getGlobalConfig,
-  saveGlobalConfig,
-  type ProviderProfile,
+    getGlobalConfig,
+    saveGlobalConfig,
+    type ProviderProfile,
 } from './config.js'
 import type { ModelOption } from './model/modelOptions.js'
 
@@ -121,7 +121,7 @@ export function getProviderPresetDefaults(
     case 'anthropic':
       return {
         provider: 'anthropic',
-        name: 'Anthropic',
+        name: 'OpenClaude',
         baseUrl: process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
         model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
         apiKey: process.env.ANTHROPIC_API_KEY ?? '',

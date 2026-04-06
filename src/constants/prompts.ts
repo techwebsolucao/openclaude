@@ -1,65 +1,65 @@
 // biome-ignore-all assist/source/organizeImports: internal-only import markers must not be reordered
-import { type as osType, version as osVersion, release as osRelease } from 'os'
-import { env } from '../utils/env.js'
-import { getIsGit } from '../utils/git.js'
-import { getCwd } from '../utils/cwd.js'
-import { getIsNonInteractiveSession } from '../bootstrap/state.js'
-import { getCurrentWorktreeSession } from '../utils/worktree.js'
-import { getSessionStartDate } from './common.js'
-import { getInitialSettings } from '../utils/settings/settings.js'
-import {
-  AGENT_TOOL_NAME,
-  VERIFICATION_AGENT_TYPE,
-} from '../tools/AgentTool/constants.js'
-import { FILE_WRITE_TOOL_NAME } from '../tools/FileWriteTool/prompt.js'
-import { FILE_READ_TOOL_NAME } from '../tools/FileReadTool/prompt.js'
-import { FILE_EDIT_TOOL_NAME } from '../tools/FileEditTool/constants.js'
-import { TODO_WRITE_TOOL_NAME } from '../tools/TodoWriteTool/constants.js'
-import { TASK_CREATE_TOOL_NAME } from '../tools/TaskCreateTool/constants.js'
-import type { Tools } from '../Tool.js'
-import type { Command } from '../types/command.js'
-import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
-import {
-  getCanonicalName,
-  getMarketingNameForModel,
-} from '../utils/model/model.js'
+import { feature } from 'bun:bundle'
+import { release as osRelease, type as osType, version as osVersion } from 'os'
 import { getSkillToolCommands } from 'src/commands.js'
-import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
-import { getOutputStyleConfig } from './outputStyles.js'
-import type {
-  MCPServerConnection,
-  ConnectedMCPServer,
-} from '../services/mcp/types.js'
+import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
+import {
+    EXPLORE_AGENT,
+    EXPLORE_AGENT_MIN_QUERIES,
+} from 'src/tools/AgentTool/built-in/exploreAgent.js'
+import { areExplorePlanAgentsEnabled } from 'src/tools/AgentTool/builtInAgents.js'
 import { GLOB_TOOL_NAME } from 'src/tools/GlobTool/prompt.js'
 import { GREP_TOOL_NAME } from 'src/tools/GrepTool/prompt.js'
 import { hasEmbeddedSearchTools } from 'src/utils/embeddedTools.js'
-import { ASK_USER_QUESTION_TOOL_NAME } from '../tools/AskUserQuestionTool/prompt.js'
-import {
-  EXPLORE_AGENT,
-  EXPLORE_AGENT_MIN_QUERIES,
-} from 'src/tools/AgentTool/built-in/exploreAgent.js'
-import { areExplorePlanAgentsEnabled } from 'src/tools/AgentTool/builtInAgents.js'
-import {
-  isScratchpadEnabled,
-  getScratchpadDir,
-} from '../utils/permissions/filesystem.js'
-import { isEnvTruthy } from '../utils/envUtils.js'
-import { isReplModeEnabled } from '../tools/REPLTool/constants.js'
-import { feature } from 'bun:bundle'
-import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
-import { shouldUseGlobalCacheScope } from '../utils/betas.js'
-import { isForkSubagentEnabled } from '../tools/AgentTool/forkSubagent.js'
-import {
-  systemPromptSection,
-  DANGEROUS_uncachedSystemPromptSection,
-  resolveSystemPromptSections,
-} from './systemPromptSections.js'
-import { SLEEP_TOOL_NAME } from '../tools/SleepTool/prompt.js'
-import { TICK_TAG } from './xml.js'
-import { logForDebugging } from '../utils/debug.js'
+import { getIsNonInteractiveSession } from '../bootstrap/state.js'
 import { loadMemoryPrompt } from '../memdir/memdir.js'
-import { isUndercover } from '../utils/undercover.js'
+import type {
+    ConnectedMCPServer,
+    MCPServerConnection,
+} from '../services/mcp/types.js'
+import type { Tools } from '../Tool.js'
+import {
+    AGENT_TOOL_NAME,
+    VERIFICATION_AGENT_TYPE,
+} from '../tools/AgentTool/constants.js'
+import { isForkSubagentEnabled } from '../tools/AgentTool/forkSubagent.js'
+import { ASK_USER_QUESTION_TOOL_NAME } from '../tools/AskUserQuestionTool/prompt.js'
+import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
+import { FILE_EDIT_TOOL_NAME } from '../tools/FileEditTool/constants.js'
+import { FILE_READ_TOOL_NAME } from '../tools/FileReadTool/prompt.js'
+import { FILE_WRITE_TOOL_NAME } from '../tools/FileWriteTool/prompt.js'
+import { isReplModeEnabled } from '../tools/REPLTool/constants.js'
+import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
+import { SLEEP_TOOL_NAME } from '../tools/SleepTool/prompt.js'
+import { TASK_CREATE_TOOL_NAME } from '../tools/TaskCreateTool/constants.js'
+import { TODO_WRITE_TOOL_NAME } from '../tools/TodoWriteTool/constants.js'
+import type { Command } from '../types/command.js'
+import { shouldUseGlobalCacheScope } from '../utils/betas.js'
+import { getCwd } from '../utils/cwd.js'
+import { logForDebugging } from '../utils/debug.js'
+import { env } from '../utils/env.js'
+import { isEnvTruthy } from '../utils/envUtils.js'
+import { getIsGit } from '../utils/git.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
+import {
+    getCanonicalName,
+    getMarketingNameForModel,
+} from '../utils/model/model.js'
+import {
+    getScratchpadDir,
+    isScratchpadEnabled,
+} from '../utils/permissions/filesystem.js'
+import { getInitialSettings } from '../utils/settings/settings.js'
+import { isUndercover } from '../utils/undercover.js'
+import { getCurrentWorktreeSession } from '../utils/worktree.js'
+import { getSessionStartDate } from './common.js'
+import { getOutputStyleConfig } from './outputStyles.js'
+import {
+    DANGEROUS_uncachedSystemPromptSection,
+    resolveSystemPromptSections,
+    systemPromptSection,
+} from './systemPromptSections.js'
+import { TICK_TAG } from './xml.js'
 
 // Dead code elimination: conditional imports for feature-gated modules
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -96,8 +96,8 @@ const skillSearchFeatureCheck = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import type { OutputStyleConfig } from './outputStyles.js'
 import { CYBER_RISK_INSTRUCTION } from './cyberRiskInstruction.js'
+import type { OutputStyleConfig } from './outputStyles.js'
 
 export const CLAUDE_CODE_DOCS_MAP_URL =
   'https://code.claude.com/docs/en/claude_code_docs_map.md'
@@ -214,7 +214,7 @@ function getSimpleDoingTasksSection(): string {
   ]
 
   const userHelpSubitems = [
-    `/help: Get help with using Claude Code`,
+    `/help: Get help with using OpenClaude`,
     `To give feedback, users should ${MACRO.ISSUES_EXPLAINER}`,
   ]
 
@@ -242,7 +242,7 @@ function getSimpleDoingTasksSection(): string {
       : []),
     ...(process.env.USER_TYPE === 'ant'
       ? [
-          `If the user reports a bug, slowness, or unexpected behavior with Claude Code itself (as opposed to asking you to fix their own code), recommend the appropriate slash command: /issue for model-related problems (odd outputs, wrong tool choices, hallucinations, refusals), or /share to upload the full session transcript for product bugs, crashes, slowness, or general issues. Only recommend these when the user is describing a problem with Claude Code.`,
+          `If the user reports a bug, slowness, or unexpected behavior with OpenClaude itself (as opposed to asking you to fix their own code), recommend the appropriate slash command: /issue for model-related problems (odd outputs, wrong tool choices, hallucinations, refusals), or /share to upload the full session transcript for product bugs, crashes, slowness, or general issues. Only recommend these when the user is describing a problem with OpenClaude.`,
         ]
       : []),
     `If the user asks for help or wants to give feedback inform them of the following:`,
@@ -449,7 +449,7 @@ export async function getSystemPrompt(
 ): Promise<string[]> {
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     return [
-      `You are OpenClaude, an open-source fork of Claude Code.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
+      `You are OpenClaude, an open-source CLI coding assistant.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
     ]
   }
 
@@ -696,10 +696,10 @@ export async function computeSimpleEnvInfo(
       : `The most recent Claude model family is Claude 4.5/4.6. Model IDs — Opus 4.6: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.opus}', Sonnet 4.6: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.sonnet}', Haiku 4.5: '${CLAUDE_4_5_OR_4_6_MODEL_IDS.haiku}'. When building AI applications, default to the latest and most capable Claude models.`,
     process.env.USER_TYPE === 'ant' && isUndercover()
       ? null
-      : `Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).`,
+      : `OpenClaude is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).`,
     process.env.USER_TYPE === 'ant' && isUndercover()
       ? null
-      : `Fast mode for Claude Code uses the same ${FRONTIER_MODEL_NAME} model with faster output. It does NOT switch to a different model. It can be toggled with /fast.`,
+      : `Fast mode for OpenClaude uses the same ${FRONTIER_MODEL_NAME} model with faster output. It does NOT switch to a different model. It can be toggled with /fast.`,
   ].filter(item => item !== null)
 
   return [
@@ -755,7 +755,7 @@ export function getUnameSR(): string {
   return `${osType()} ${osRelease()}`
 }
 
-export const DEFAULT_AGENT_PROMPT = `You are an agent for OpenClaude, an open-source fork of Claude Code. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.`
+export const DEFAULT_AGENT_PROMPT = `You are an agent for OpenClaude, an open-source CLI coding assistant. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.`
 
 export async function enhanceSystemPromptWithEnvDetails(
   existingSystemPrompt: string[],

@@ -5,8 +5,8 @@
  * Addresses: https://github.com/Gitlawb/openclaude/issues/55
  */
 
-import { isLocalProviderUrl } from '../services/api/providerConfig.js'
-import { getLocalOpenAICompatibleProviderLabel } from '../utils/providerDiscovery.js'
+import { isLocalProviderUrl } from '../services/api/providerConfig.js';
+import { getLocalOpenAICompatibleProviderLabel } from '../utils/providerDiscovery.js';
 
 declare const MACRO: { VERSION: string; DISPLAY_VERSION?: string }
 
@@ -139,9 +139,9 @@ function detectProvider(): { name: string; model: string; baseUrl: string; isLoc
     return { name, model: displayModel, baseUrl, isLocal }
   }
 
-  // Default: Anthropic
+  // Default: OpenClaude
   const model = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-sonnet-4-6'
-  return { name: 'Anthropic', model, baseUrl: 'https://api.anthropic.com', isLocal: false }
+  return { name: 'OpenClaude', model, baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com', isLocal: false }
 }
 
 // ─── Box drawing ──────────────────────────────────────────────────────────────

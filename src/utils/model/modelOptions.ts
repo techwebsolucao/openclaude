@@ -2,34 +2,34 @@
 import { getInitialMainLoopModel } from '../../bootstrap/state.js'
 import { getAdditionalModelOptionsCacheScope } from '../../services/api/providerConfig.js'
 import {
-    isClaudeAISubscriber,
-    isMaxSubscriber,
-    isTeamPremiumSubscriber,
+  isClaudeAISubscriber,
+  isMaxSubscriber,
+  isTeamPremiumSubscriber,
 } from '../auth.js'
-import { getGlobalConfig } from '../config.js'
+import { getGlobalConfig, saveGlobalConfig } from '../config.js'
 import { has1mContext } from '../context.js'
 import {
-    COST_HAIKU_35,
-    COST_HAIKU_45,
-    COST_TIER_3_15,
-    formatModelPricing,
+  COST_HAIKU_35,
+  COST_HAIKU_45,
+  COST_TIER_3_15,
+  formatModelPricing,
 } from '../modelCost.js'
 import { getActiveOpenAIModelOptionsCache } from '../providerProfiles.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
 import {
-    getCanonicalName,
-    getClaudeAiUserDefaultModelDescription,
-    getDefaultHaikuModel,
-    getDefaultMainLoopModelSetting,
-    getDefaultOpusModel,
-    getDefaultSonnetModel,
-    getMarketingNameForModel,
-    getOpus46PricingSuffix,
-    getUserSpecifiedModelSetting,
-    isOpus1mMergeEnabled,
-    renderDefaultModelSetting,
-    type ModelSetting,
+  getCanonicalName,
+  getClaudeAiUserDefaultModelDescription,
+  getDefaultHaikuModel,
+  getDefaultMainLoopModelSetting,
+  getDefaultOpusModel,
+  getDefaultSonnetModel,
+  getMarketingNameForModel,
+  getOpus46PricingSuffix,
+  getUserSpecifiedModelSetting,
+  isOpus1mMergeEnabled,
+  renderDefaultModelSetting,
+  type ModelSetting,
 } from './model.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { getModelStrings } from './modelStrings.js'
@@ -62,6 +62,30 @@ function getScopedAdditionalModelOptions(): ModelOption[] {
   return activeScope === 'firstParty'
     ? (config.additionalModelOptionsCache ?? [])
     : []
+}
+
+export function getSavedCustomModels(): ModelOption[] {
+  const config = getGlobalConfig()
+  return config.savedCustomModels ?? []
+}
+
+export function saveCustomModel(model: string): void {
+  const config = getGlobalConfig()
+  const existing = config.savedCustomModels ?? []
+  if (existing.some(m => m.value === model)) {
+    return
+  }
+  saveGlobalConfig(current => ({
+    ...current,
+    savedCustomModels: [
+      ...existing,
+      {
+        value: model,
+        label: model,
+        description: `Custom model`,
+      },
+    ],
+  }))
 }
 
 export function getDefaultOptionForUser(fastMode = false): ModelOption {
@@ -468,42 +492,17 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
     return payg1POptions
   }
 
-  // PAYG 3P: Default (Sonnet 4.5) + Sonnet (3P custom) or Sonnet 4.6/1M + Opus (3P custom) or Opus 4.1/Opus 4.6/Opus1M + Haiku + Opus 4.1
+  // PAYG 3P: Default + user-saved custom models (e.g. OpenRouter)
   const payg3pOptions = [getDefaultOptionForUser(fastMode)]
 
-  // Add Codex models for openai and codex providers
-  if (getAPIProvider() === 'openai' || getAPIProvider() === 'codex') {
-    payg3pOptions.push(...getCodexModelOptions())
-  }
-
-  const customSonnet = getCustomSonnetOption()
-  if (customSonnet !== undefined) {
-    payg3pOptions.push(customSonnet)
-  } else {
-    // Add Sonnet 4.6 since Sonnet 4.5 is the default
-    payg3pOptions.push(getSonnet46Option())
-    if (checkSonnet1mAccess()) {
-      payg3pOptions.push(getSonnet46_1MOption())
+  // Add any user-saved custom models from config
+  const savedModels = getSavedCustomModels()
+  for (const saved of savedModels) {
+    if (!payg3pOptions.some(opt => opt.value === saved.value)) {
+      payg3pOptions.push(saved)
     }
   }
 
-  const customOpus = getCustomOpusOption()
-  if (customOpus !== undefined) {
-    payg3pOptions.push(customOpus)
-  } else {
-    // Add Opus 4.1, Opus 4.6 and Opus 4.6 1M
-    payg3pOptions.push(getOpus41Option()) // This is the default opus
-    payg3pOptions.push(getOpus46Option(fastMode))
-    if (checkOpus1mAccess()) {
-      payg3pOptions.push(getOpus46_1MOption(fastMode))
-    }
-  }
-  const customHaiku = getCustomHaikuOption()
-  if (customHaiku !== undefined) {
-    payg3pOptions.push(customHaiku)
-  } else {
-    payg3pOptions.push(getHaikuOption())
-  }
   return payg3pOptions
 }
 
@@ -631,35 +630,12 @@ export function getModelOptions(fastMode = false): ModelOption[] {
   }
   if (customModel === null || options.some(opt => opt.value === customModel)) {
     return filterModelOptionsByAllowlist(options)
-  } else if (customModel === 'opusplan') {
-    return filterModelOptionsByAllowlist([...options, getOpusPlanOption()])
-  } else if (customModel === 'gpt-5.4') {
-    return filterModelOptionsByAllowlist([...options, getCodexPlanOption()])
-  } else if (customModel === 'gpt-5.3-codex-spark') {
-    return filterModelOptionsByAllowlist([...options, getCodexSparkOption()])
-  } else if (customModel === 'opus' && getAPIProvider() === 'firstParty') {
-    return filterModelOptionsByAllowlist([
-      ...options,
-      getMaxOpusOption(fastMode),
-    ])
-  } else if (customModel === 'opus[1m]' && getAPIProvider() === 'firstParty') {
-    return filterModelOptionsByAllowlist([
-      ...options,
-      getMergedOpus1MOption(fastMode),
-    ])
   } else {
-    // Try to show a human-readable label for known Anthropic models, with an
-    // upgrade hint if the alias now resolves to a newer version.
-    const knownOption = getKnownModelOption(customModel)
-    if (knownOption) {
-      options.push(knownOption)
-    } else {
-      options.push({
-        value: customModel,
-        label: customModel,
-        description: 'Custom model',
-      })
-    }
+    options.push({
+      value: customModel,
+      label: customModel,
+      description: 'Custom model',
+    })
     return filterModelOptionsByAllowlist(options)
   }
 }

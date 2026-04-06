@@ -11,7 +11,7 @@ afterEach(() => {
   process.env.CLAUDE_CODE_SIMPLE = originalSimpleEnv
 })
 
-test('CLI identity prefixes describe OpenClaude instead of Claude Code', () => {
+test('CLI identity prefixes describe OpenClaude instead of OpenClaude', () => {
   expect(getCLISyspromptPrefix()).toContain('OpenClaude')
   expect(getCLISyspromptPrefix()).not.toContain("Anthropic's official CLI for Claude")
 
@@ -21,7 +21,7 @@ test('CLI identity prefixes describe OpenClaude instead of Claude Code', () => {
   }
 })
 
-test('simple mode identity describes OpenClaude instead of Claude Code', async () => {
+test('simple mode identity describes OpenClaude instead of OpenClaude', async () => {
   process.env.CLAUDE_CODE_SIMPLE = '1'
 
   const prompt = await getSystemPrompt([], 'gpt-4o')
@@ -30,7 +30,7 @@ test('simple mode identity describes OpenClaude instead of Claude Code', async (
   expect(prompt[0]).not.toContain("Anthropic's official CLI for Claude")
 })
 
-test('built-in agent prompts describe OpenClaude instead of Claude Code', () => {
+test('built-in agent prompts describe OpenClaude instead of OpenClaude', () => {
   expect(DEFAULT_AGENT_PROMPT).toContain('OpenClaude')
   expect(DEFAULT_AGENT_PROMPT).not.toContain("Anthropic's official CLI for Claude")
 

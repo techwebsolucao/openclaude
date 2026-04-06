@@ -157,7 +157,7 @@ export function Login(props: {
           <Select
             options={[
               { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' },
-              { label: 'Anthropic / Claude account', value: 'anthropic' },
+              { label: 'OpenClaude / direct API key', value: 'anthropic' },
             ]}
             onChange={v => setChoice(v as ProviderChoice)}
           />

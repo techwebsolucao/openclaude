@@ -114,7 +114,7 @@ function profileSummary(profile: ProviderProfile, isActive: boolean): string {
   const activeSuffix = isActive ? ' (active)' : ''
   const keyInfo = profile.apiKey ? 'key set' : 'no key'
   const providerKind =
-    profile.provider === 'anthropic' ? 'anthropic' : 'openai-compatible'
+    profile.provider === 'anthropic' ? 'openclaude' : 'openai-compatible'
   return `${providerKind} · ${profile.baseUrl} · ${profile.model} · ${keyInfo}${activeSuffix}`
 }
 
@@ -447,8 +447,8 @@ export function ProviderManager({ mode, onDone }: Props): React.ReactNode {
     const options = [
       {
         value: 'anthropic',
-        label: 'Anthropic',
-        description: 'Native Claude API (x-api-key auth)',
+        label: 'OpenClaude',
+        description: 'Native OpenClaude API (x-api-key auth)',
       },
       {
         value: 'ollama',
@@ -561,7 +561,7 @@ export function ProviderManager({ mode, onDone }: Props): React.ReactNode {
         <Text dimColor>
           Provider type:{' '}
           {draftProvider === 'anthropic'
-            ? 'Anthropic native API'
+            ? 'OpenClaude native API'
             : 'OpenAI-compatible API'}
         </Text>
         <Text dimColor>
@@ -708,7 +708,7 @@ export function ProviderManager({ mode, onDone }: Props): React.ReactNode {
         profile.id === activeProfileId
           ? `${profile.name} (active)`
           : profile.name,
-      description: `${profile.provider === 'anthropic' ? 'anthropic' : 'openai-compatible'} · ${profile.baseUrl} · ${profile.model}`,
+      description: `${profile.provider === 'anthropic' ? 'openclaude' : 'openai-compatible'} · ${profile.baseUrl} · ${profile.model}`,
     }))
 
     if (includeGithub && githubProviderAvailable) {

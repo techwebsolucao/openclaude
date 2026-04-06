@@ -21,10 +21,11 @@ import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultMode
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 import { getAdditionalModelOptionsCacheScope } from '../../services/api/providerConfig.js';
-import { TYPE_CUSTOM_MODEL_SENTINEL } from '../../utils/model/modelOptions.js';
-import { Box, Text } from '../../ink.js';
+import { TYPE_CUSTOM_MODEL_SENTINEL, saveCustomModel } from '../../utils/model/modelOptions.js';
+import { Box, Text, useInput } from '../../ink.js';
 import TextInput from '../../components/TextInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
+import { getSettingsForSource } from '../../utils/settings/settings.js';
 function ModelPickerWrapper(t0) {
   const $ = _c(17);
   const {
@@ -54,15 +55,33 @@ function ModelPickerWrapper(t0) {
     try {
       const { valid, error: err } = await validateModel(trimmed);
       if (!valid) {
-        setCustomError(err || `Model '${trimmed}' not found`);
-        return;
+        // If the error is auth-related, the model can't be validated via Anthropic API
+        // (happens with OpenRouter/3P providers). Accept the model and let it fail at query time.
+        const isAuthError = err?.includes('Could not resolve authentication') ||
+          err?.includes('Unable to validate model') ||
+          err?.includes('Authentication failed');
+        if (!isAuthError) {
+          setCustomError(err || `Model '${trimmed}' not found`);
+          return;
+        }
       }
     } catch {
       // Accept unvalidatable models (e.g. OpenRouter) as-is
     }
+    saveCustomModel(trimmed);
     setAppState(prev => ({ ...prev, mainLoopModel: trimmed, mainLoopModelForSession: null }));
     onDone(`Set model to ${chalk.bold(trimmed)}`);
   }, [onDone, setAppState]);
+
+  // Handle Esc to go back to model list from custom input mode
+  useInput((_input, key) => {
+    if (key.escape && customMode) {
+      setCustomMode(false);
+      setCustomValue('');
+      setCustomCursor(0);
+      setCustomError(null);
+    }
+  }, { isActive: customMode });
 
   if (customMode) {
     return (
@@ -77,6 +96,7 @@ function ModelPickerWrapper(t0) {
           columns={Math.max(40, columns - 6)}
           cursorOffset={customCursor}
           onChangeCursorOffset={setCustomCursor}
+          disableEscapeDoublePress
           focus
           showCursor
         />
@@ -376,6 +396,21 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     });
     return;
   }
+
+  // If settings.json has agentRouting with a default model, /model is redundant
+  // because agentRouting overrides model selection at query time.
+  const userSettings = getSettingsForSource('userSettings');
+  const routingDefault = userSettings?.agentRouting?.['default'] || userSettings?.agentRouting?.['general-purpose'];
+  if (routingDefault) {
+    const configPath = '~/.openclaude/settings.json';
+    onDone(
+      `Model is configured via ${chalk.bold(configPath)} (agentRouting → ${chalk.bold(routingDefault)}).\n` +
+      `To change the model, edit ${chalk.bold(configPath)} or remove agentRouting to use /model.`,
+      { display: 'system' }
+    );
+    return;
+  }
+
   if (args) {
     logEvent('tengu_model_command_inline', {
       args: args as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS

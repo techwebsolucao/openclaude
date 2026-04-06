@@ -217,7 +217,7 @@ export function buildCurrentProviderSummary(options?: {
   }
 
   return {
-    providerLabel: 'Anthropic',
+    providerLabel: 'OpenClaude',
     modelLabel: getSafeDisplayValue(
       processEnv.ANTHROPIC_MODEL ??
         processEnv.CLAUDE_MODEL ??

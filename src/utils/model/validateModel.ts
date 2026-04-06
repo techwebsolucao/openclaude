@@ -1,16 +1,16 @@
 // biome-ignore-all assist/source/organizeImports: internal-only import markers must not be reordered
+import {
+  APIConnectionError,
+  APIError,
+  AuthenticationError,
+  NotFoundError,
+} from '@anthropic-ai/sdk'
+import { sideQuery } from '../sideQuery.js'
 import { MODEL_ALIASES } from './aliases.js'
 import { isModelAllowed } from './modelAllowlist.js'
-import { getAPIProvider } from './providers.js'
-import { sideQuery } from '../sideQuery.js'
-import {
-  NotFoundError,
-  APIError,
-  APIConnectionError,
-  AuthenticationError,
-} from '@anthropic-ai/sdk'
 import { getModelStrings } from './modelStrings.js'
 import { getCachedOllamaModelOptions, isOllamaProvider } from './ollamaModels.js'
+import { getAPIProvider } from './providers.js'
 
 // Cache valid models to avoid repeated API calls
 const validModelCache = new Map<string, boolean>()
@@ -26,6 +26,18 @@ export async function validateModel(
   // Empty model is invalid
   if (!normalizedModel) {
     return { valid: false, error: 'Model name cannot be empty' }
+  }
+
+  // For 3P OpenAI-compatible providers (e.g. OpenRouter, DeepSeek, Groq),
+  // skip API validation entirely — the Anthropic SDK cannot validate non-Anthropic models
+  // and will throw "Could not resolve authentication method" errors.
+  // Accept any model name the user types; invalid names will fail at actual query time.
+  const provider = getAPIProvider()
+  if (provider !== 'firstParty' && provider !== 'bedrock' && provider !== 'vertex' && provider !== 'foundry') {
+    if (provider !== 'openai' || !isOllamaProvider()) {
+      validModelCache.set(normalizedModel, true)
+      return { valid: true }
+    }
   }
 
   // For Ollama provider, validate against cached model list instead of API call
@@ -70,7 +82,6 @@ export async function validateModel(
   if (validModelCache.has(normalizedModel)) {
     return { valid: true }
   }
-
 
   // Try to make an actual API call with minimal parameters
   try {
