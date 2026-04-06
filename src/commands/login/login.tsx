@@ -70,7 +70,7 @@ export async function call(
         resetUserCache()
         refreshGrowthBookAfterAuthChange()
 
-        // Re-apply env vars from settings (including .claude/settings.json provider
+        // Re-apply env vars from settings (including .openclaude/settings.json provider
         // config) so any changes since startup are picked up, and the active
         // provider profile is re-applied with the new credentials.
         applyConfigEnvironmentVariables()
