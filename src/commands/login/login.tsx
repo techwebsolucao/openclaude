@@ -156,8 +156,7 @@ export function Login(props: {
           <Text bold>How do you want to connect?</Text>
           <Select
             options={[
-              { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' },
-              { label: 'OpenClaude / direct API key', value: 'anthropic' },
+              { label: 'OpenRouter  · use any model with one API key', value: 'openrouter' }
             ]}
             onChange={v => setChoice(v as ProviderChoice)}
           />
