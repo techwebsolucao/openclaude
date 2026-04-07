@@ -26,6 +26,8 @@ import { isEnvTruthy } from '../../utils/envUtils.js'
 import { resolveGeminiCredential } from '../../utils/geminiAuth.js'
 import { hydrateGeminiAccessTokenFromSecureStorage } from '../../utils/geminiCredentials.js'
 import { hydrateGithubModelsTokenFromSecureStorage } from '../../utils/githubModelsCredentials.js'
+import { redactSecretValueForDisplay } from '../../utils/providerProfile.js'
+import { sanitizeSchemaForOpenAICompat } from '../../utils/schemaSanitizer.js'
 import {
   codexStreamToAnthropic,
   collectCodexCompletedResponse,
@@ -40,11 +42,9 @@ import {
   resolveCodexApiCredentials,
   resolveProviderRequest,
 } from './providerConfig.js'
-import { sanitizeSchemaForOpenAICompat } from '../../utils/schemaSanitizer.js'
-import { redactSecretValueForDisplay } from '../../utils/providerProfile.js'
 import {
-  normalizeToolArguments,
   hasToolFieldMapping,
+  normalizeToolArguments,
 } from './toolArgumentNormalization.js'
 
 type SecretValueSource = Partial<{
@@ -1061,6 +1061,11 @@ class OpenAIShimMessages {
 
     if (params.temperature !== undefined) body.temperature = params.temperature
     if (params.top_p !== undefined) body.top_p = params.top_p
+
+    // Pass reasoning_effort to OpenAI-compatible APIs (e.g. OpenRouter)
+    if (request.reasoning?.effort) {
+      body.reasoning_effort = request.reasoning.effort
+    }
 
     if (params.tools && params.tools.length > 0) {
       const converted = convertTools(

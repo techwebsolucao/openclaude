@@ -42,24 +42,14 @@ export function useIDEStatusIndicator(t0) {
   const showIDEInstallErrorOrJetBrainsInfo = ideInstallationStatus?.error || isJetBrains;
   const shouldShowIdeSelection = ideStatus === "connected" && (ideSelection?.filePath || ideSelection?.text && ideSelection.lineCount > 0);
   const shouldShowConnected = ideStatus === "connected" && !shouldShowIdeSelection;
-  const showIDEInstallError = showIDEInstallErrorOrJetBrainsInfo && !isJetBrains && !shouldShowConnected && !shouldShowIdeSelection;
-  const showJetBrainsInfo = showIDEInstallErrorOrJetBrainsInfo && isJetBrains && !shouldShowConnected && !shouldShowIdeSelection;
+  const showIDEInstallError = false;
+  const showJetBrainsInfo = false;
   let t2;
   let t3;
   if ($[2] !== addNotification || $[3] !== ideStatus || $[4] !== removeNotification || $[5] !== showJetBrainsInfo) {
     t2 = () => {
-      if (getIsRemoteMode()) {
-        return;
-      }
-      if (isSupportedTerminal() || ideStatus !== null || showJetBrainsInfo) {
-        removeNotification("ide-status-hint");
-        return;
-      }
-      if (hasShownHintRef.current || (getGlobalConfig().ideHintShownCount ?? 0) >= MAX_IDE_HINT_SHOW_COUNT) {
-        return;
-      }
-      const timeoutId = setTimeout(_temp2, 3000, hasShownHintRef, addNotification);
-      return () => clearTimeout(timeoutId);
+      removeNotification("ide-status-hint");
+      return;
     };
     t3 = [addNotification, removeNotification, ideStatus, showJetBrainsInfo];
     $[2] = addNotification;
@@ -77,19 +67,8 @@ export function useIDEStatusIndicator(t0) {
   let t5;
   if ($[8] !== addNotification || $[9] !== ideName || $[10] !== ideStatus || $[11] !== removeNotification || $[12] !== showIDEInstallError || $[13] !== showJetBrainsInfo) {
     t4 = () => {
-      if (getIsRemoteMode()) {
-        return;
-      }
-      if (showIDEInstallError || showJetBrainsInfo || ideStatus !== "disconnected" || !ideName) {
-        removeNotification("ide-status-disconnected");
-        return;
-      }
-      addNotification({
-        key: "ide-status-disconnected",
-        text: `${ideName} disconnected`,
-        color: "error",
-        priority: "medium"
-      });
+      removeNotification("ide-status-disconnected");
+      return;
     };
     t5 = [addNotification, removeNotification, ideStatus, ideName, showIDEInstallError, showJetBrainsInfo];
     $[8] = addNotification;
