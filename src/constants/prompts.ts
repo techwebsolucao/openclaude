@@ -310,6 +310,7 @@ function getUsingYourToolsSection(enabledTools: Set<string>): string {
       ? `Break down and manage your work with the ${taskToolName} tool. These tools are helpful for planning your work and helping the user track your progress. Mark each task as completed as soon as you are done with the task. Do not batch up multiple tasks before marking them as completed.`
       : null,
     `You can call multiple tools in a single response. If you intend to call multiple tools and there are no dependencies between them, make all independent tool calls in parallel. Maximize use of parallel tool calls where possible to increase efficiency. However, if some tool calls depend on previous calls to inform dependent values, do NOT call these tools in parallel and instead call them sequentially. For instance, if one operation must complete before another starts, run these operations sequentially instead.`,
+    `Before making a tool call, check the conversation history for previous tool results that already contain the information you need. If you have already read a file, searched for a pattern, or answered a question earlier in the conversation, reference your prior results instead of making redundant tool calls. Only re-read or re-search when you have reason to believe the content has changed (e.g. after an edit).`,
   ].filter(item => item !== null)
 
   return [`# Using your tools`, ...prependBullets(items)].join(`\n`)

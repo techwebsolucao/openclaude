@@ -1,8 +1,8 @@
 import type { Anthropic } from '@anthropic-ai/sdk'
 import { feature } from 'bun:bundle'
 import {
-    getSystemPrompt,
-    SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+  getSystemPrompt,
+  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 } from 'src/constants/prompts.js'
 import { microcompactMessages } from 'src/services/compact/microCompact.js'
 import { getSdkBetas } from '../bootstrap/state.js'
@@ -10,41 +10,41 @@ import { getCommandName } from '../commands.js'
 import { getSystemContext } from '../context.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
-    AUTOCOMPACT_BUFFER_TOKENS,
-    getEffectiveContextWindowSize,
-    isAutoCompactEnabled,
-    MANUAL_COMPACT_BUFFER_TOKENS,
+  AUTOCOMPACT_BUFFER_TOKENS,
+  getEffectiveContextWindowSize,
+  isAutoCompactEnabled,
+  MANUAL_COMPACT_BUFFER_TOKENS,
 } from '../services/compact/autoCompact.js'
 import {
-    countMessagesTokensWithAPI,
-    countTokensViaHaikuFallback,
-    roughTokenCountEstimation,
+  countMessagesTokensWithAPI,
+  countTokensViaHaikuFallback,
+  roughTokenCountEstimation,
 } from '../services/tokenEstimation.js'
 import { estimateSkillFrontmatterTokens } from '../skills/loadSkillsDir.js'
 import {
-    findToolByName,
-    toolMatchesName,
-    type Tool,
-    type ToolPermissionContext,
-    type Tools,
-    type ToolUseContext,
+  findToolByName,
+  toolMatchesName,
+  type Tool,
+  type ToolPermissionContext,
+  type Tools,
+  type ToolUseContext,
 } from '../Tool.js'
 import type {
-    AgentDefinition,
-    AgentDefinitionsResult,
+  AgentDefinition,
+  AgentDefinitionsResult,
 } from '../tools/AgentTool/loadAgentsDir.js'
 import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
 import {
-    getLimitedSkillToolCommands,
-    getSkillToolInfo as getSlashCommandInfo,
+  getLimitedSkillToolCommands,
+  getSkillToolInfo as getSlashCommandInfo,
 } from '../tools/SkillTool/prompt.js'
 import type {
-    AssistantMessage,
-    AttachmentMessage,
-    Message,
-    NormalizedAssistantMessage,
-    NormalizedUserMessage,
-    UserMessage,
+  AssistantMessage,
+  AttachmentMessage,
+  Message,
+  NormalizedAssistantMessage,
+  NormalizedUserMessage,
+  UserMessage,
 } from '../types/message.js'
 import { toolToAPISchema } from './api.js'
 import { filterInjectedMemoryFiles, getMemoryFiles } from './claudemd.js'
@@ -65,22 +65,63 @@ import { getCurrentUsage } from './tokens.js'
 const RESERVED_CATEGORY_NAME = 'Autocompact buffer'
 const MANUAL_COMPACT_BUFFER_NAME = 'Compact buffer'
 
-/**
- * Fixed token overhead added by the API when tools are present.
- * The API adds a tool prompt preamble (~500 tokens) once per API call when tools are present.
- * When we count tools individually via the token counting API, each call includes this overhead,
- * leading to N × overhead instead of 1 × overhead for N tools.
- * We subtract this overhead from per-tool counts to show accurate tool content sizes.
- */
 export const TOOL_TOKEN_COUNT_OVERHEAD = 500
+
+const TOKEN_CACHE_TTL_MS = 60_000 // 1 minute
+const TOKEN_CACHE_MAX_ENTRIES = 200
+
+interface TokenCacheEntry {
+  tokens: number | null
+  ts: number
+}
+
+const _tokenCache = new Map<string, TokenCacheEntry>()
+
+/** Simple djb2-style hash – fast and good enough for dedup keys. */
+function quickHash(input: string): string {
+  let h = 5381
+  for (let i = 0; i < input.length; i++) {
+    h = ((h << 5) + h + input.charCodeAt(i)) | 0
+  }
+  return h.toString(36)
+}
+
+function getCachedTokenCount(key: string): number | null | undefined {
+  const entry = _tokenCache.get(key)
+  if (!entry) return undefined
+  if (Date.now() - entry.ts > TOKEN_CACHE_TTL_MS) {
+    _tokenCache.delete(key)
+    return undefined
+  }
+  return entry.tokens
+}
+
+function setCachedTokenCount(key: string, tokens: number | null): void {
+  if (_tokenCache.size >= TOKEN_CACHE_MAX_ENTRIES) {
+    const firstKey = _tokenCache.keys().next().value
+    if (firstKey !== undefined) _tokenCache.delete(firstKey)
+  }
+  _tokenCache.set(key, { tokens, ts: Date.now() })
+}
+
+/** Clear the token count cache (e.g. after model change or tool reload). */
+export function clearTokenCountCache(): void {
+  _tokenCache.clear()
+}
+// ─────────────────────────────────────────────────────────────────────
 
 async function countTokensWithFallback(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
   tools: Anthropic.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  // Check in-memory cache first
+  const cacheKey = quickHash(jsonStringify({ m: messages, t: tools }))
+  const cached = getCachedTokenCount(cacheKey)
+  if (cached !== undefined) return cached
   try {
     const result = await countMessagesTokensWithAPI(messages, tools)
     if (result !== null) {
+      setCachedTokenCount(cacheKey, result)
       return result
     }
     logForDebugging(
@@ -98,6 +139,7 @@ async function countTokensWithFallback(
         `countTokensWithFallback: haiku fallback also returned null (${tools.length} tools)`,
       )
     }
+    setCachedTokenCount(cacheKey, fallbackResult)
     return fallbackResult
   } catch (err) {
     logForDebugging(

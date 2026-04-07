@@ -9,8 +9,8 @@ import { getAutoMemEntrypoint } from '../memdir/paths.js'
 import { logEvent } from '../services/analytics/index.js'
 import type { McpServerConfig } from '../services/mcp/types.js'
 import type {
-    BillingType,
-    ReferralEligibilityResponse,
+  BillingType,
+  ReferralEligibilityResponse,
 } from '../services/oauth/types.js'
 import { getCwd } from '../utils/cwd.js'
 import { registerCleanup } from './cleanupRegistry.js'
@@ -150,8 +150,8 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 export type InstallMethod = 'local' | 'native' | 'global' | 'unknown'
 
 export {
-    EDITOR_MODES,
-    NOTIFICATION_CHANNELS
+  EDITOR_MODES,
+  NOTIFICATION_CHANNELS
 } from './configConstants.js'
 
 import type { EDITOR_MODES, NOTIFICATION_CHANNELS } from './configConstants.js'
@@ -253,6 +253,14 @@ export type GlobalConfig = {
     skipPrefetches?: boolean         // default true. Skip memory/skill prefetches.
     compactMaxOutputTokens?: number  // default 8000. Max output for compact summaries.
     skipMemoryInstructions?: boolean // default false. Skip memory taxonomy instructions to save ~1.5k tokens.
+  }
+  topicShiftDetectionEnabled?: boolean // Detects complete topic changes and offers to clear context
+  /** User-tunable topic shift detection parameters. */
+  topicShiftConfig?: {
+    similarityThreshold?: number    // 0-1, default 0.08. Below this = topic shift detected.
+    minConversationTurns?: number   // default 3. Minimum user turns before detection activates.
+    recentTurnsWindow?: number      // default 6. How many recent user messages to compare against.
+    minNewMessageWords?: number     // default 5. Minimum keywords in new message to trigger.
   }
   showTurnDuration: boolean // Controls whether to show turn duration message (e.g., "Cooked for 1m 6s")
   /**
@@ -680,6 +688,7 @@ export const GLOBAL_CONFIG_KEYS = [
   'hasUsedBackslashReturn',
   'autoCompactEnabled',
   'tokenEconomyEnabled',
+  'topicShiftDetectionEnabled',
   'showTurnDuration',
   'diffTool',
   'env',

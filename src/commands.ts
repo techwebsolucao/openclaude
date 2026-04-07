@@ -10,7 +10,6 @@ import commitPushPr from './commands/commit-push-pr.js'
 import commit from './commands/commit.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
-import { context, contextNonInteractive } from './commands/context/index.js'
 import copy from './commands/copy/index.js'
 import cost from './commands/cost/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
@@ -129,8 +128,8 @@ import env from './commands/env/index.js'
 import exit from './commands/exit/index.js'
 import exportCommand from './commands/export/index.js'
 import {
-  extraUsage,
-  extraUsageNonInteractive,
+    extraUsage,
+    extraUsageNonInteractive,
 } from './commands/extra-usage/index.js'
 import fast from './commands/fast/index.js'
 import files from './commands/files/index.js'
@@ -151,8 +150,8 @@ import rateLimitOptions from './commands/rate-limit-options/index.js'
 import reloadPlugins from './commands/reload-plugins/index.js'
 import remoteEnv from './commands/remote-env/index.js'
 import {
-  resetLimits,
-  resetLimitsNonInteractive,
+    resetLimits,
+    resetLimitsNonInteractive,
 } from './commands/reset-limits/index.js'
 import rewind from './commands/rewind/index.js'
 import routing from './commands/routing/index.js'
@@ -169,14 +168,14 @@ import version from './commands/version.js'
 import { getBuiltinPluginSkillCommands } from './plugins/builtinPlugins.js'
 import { getBundledSkills } from './skills/bundledSkills.js'
 import {
-  clearSkillCaches,
-  getDynamicSkills,
-  getSkillDirCommands,
+    clearSkillCaches,
+    getDynamicSkills,
+    getSkillDirCommands,
 } from './skills/loadSkillsDir.js'
 import {
-  type Command,
-  getCommandName,
-  isCommandEnabled,
+    type Command,
+    getCommandName,
+    isCommandEnabled,
 } from './types/command.js'
 import { isClaudeAISubscriber, isUsing3PServices } from './utils/auth.js'
 import { logForDebugging } from './utils/debug.js'
@@ -184,10 +183,10 @@ import { toError } from './utils/errors.js'
 import { logError } from './utils/log.js'
 import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
 import {
-  clearPluginCommandCache,
-  clearPluginSkillsCache,
-  getPluginCommands,
-  getPluginSkills,
+    clearPluginCommandCache,
+    clearPluginSkillsCache,
+    getPluginCommands,
+    getPluginSkills,
 } from './utils/plugins/loadPluginCommands.js'
 import { getSettingSourceName } from './utils/settings/constants.js'
 // insights.ts is 113KB (3200 lines, includes diffLines/html rendering). Lazy
@@ -209,13 +208,13 @@ const usageReport: Command = {
 // Re-export types from the centralized location
 export { getCommandName, isCommandEnabled } from './types/command.js'
 export type {
-  Command,
-  CommandBase,
-  CommandResultDisplay,
-  LocalCommandResult,
-  LocalJSXCommandContext,
-  PromptCommand,
-  ResumeEntrypoint
+    Command,
+    CommandBase,
+    CommandResultDisplay,
+    LocalCommandResult,
+    LocalJSXCommandContext,
+    PromptCommand,
+    ResumeEntrypoint
 } from './types/command.js'
 
 // Commands that get eliminated from the external build
@@ -265,8 +264,6 @@ const COMMANDS = memoize((): Command[] => [
   config,
   copy,
   desktop,
-  context,
-  contextNonInteractive,
   cost,
   diff,
   dream,

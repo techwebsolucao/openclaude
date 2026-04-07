@@ -141,6 +141,16 @@ export async function countMessagesTokensWithAPI(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
   tools: Anthropic.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  const provider = getAPIProvider()
+  if (
+    provider === 'openai' ||
+    provider === 'gemini' ||
+    provider === 'github' ||
+    provider === 'codex'
+  ) {
+    return null
+  }
+
   return withTokenCountVCR(messages, tools, async () => {
     try {
       const model = getMainLoopModel()
@@ -252,6 +262,16 @@ export async function countTokensViaHaikuFallback(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
   tools: Anthropic.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  const provider = getAPIProvider()
+  if (
+    provider === 'openai' ||
+    provider === 'gemini' ||
+    provider === 'github' ||
+    provider === 'codex'
+  ) {
+    return null
+  }
+
   // Check if messages contain thinking blocks
   const containsThinking = hasThinkingBlocks(messages)
 
