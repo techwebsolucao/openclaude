@@ -33,6 +33,8 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
 
   // DeepSeek (V3: 128k context per official docs)
   'deepseek-chat':            128_000,
+  'deepseek-v3':              128_000,
+  'deepseek-v3.2':            128_000,
   'deepseek-reasoner':        128_000,
 
   // Groq (fast inference)
@@ -99,6 +101,8 @@ const OPENAI_MAX_OUTPUT_TOKENS: Record<string, number> = {
 
   // DeepSeek
   'deepseek-chat':              8_192,
+  'deepseek-v3':                8_192,
+  'deepseek-v3.2':              8_192,
   'deepseek-reasoner':         32_768,
 
   // Groq
