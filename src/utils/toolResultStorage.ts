@@ -22,6 +22,10 @@ import { formatFileSize } from './format.js'
 import { logError } from './log.js'
 import { getProjectDir } from './sessionStorage.js'
 import { jsonStringify } from './slowOperations.js'
+import {
+  getEconomyMaxResultSizeChars,
+  getEconomyPerMessageBudget,
+} from './tokenEconomy.js'
 
 // Subdirectory name for tool results within a session
 export const TOOL_RESULTS_SUBDIR = 'tool-results'
@@ -74,7 +78,9 @@ export function getPersistenceThreshold(
   ) {
     return override
   }
-  return Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS)
+  return getEconomyMaxResultSizeChars(
+    Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS),
+  )
 }
 
 // Result of persisting a tool result to disk
@@ -430,7 +436,7 @@ export function getPerMessageBudgetLimit(): number {
   ) {
     return override
   }
-  return MAX_TOOL_RESULTS_PER_MESSAGE_CHARS
+  return getEconomyPerMessageBudget(MAX_TOOL_RESULTS_PER_MESSAGE_CHARS)
 }
 
 /**

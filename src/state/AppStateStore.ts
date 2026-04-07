@@ -5,16 +5,16 @@ import type { Command } from '../commands.js'
 import type { ChannelPermissionCallbacks } from '../services/mcp/channelPermissions.js'
 import type { ElicitationRequestEvent } from '../services/mcp/elicitationHandler.js'
 import type {
-  MCPServerConnection,
-  ServerResource,
+    MCPServerConnection,
+    ServerResource,
 } from '../services/mcp/types.js'
 import { shouldEnablePromptSuggestion } from '../services/PromptSuggestion/promptSuggestion.js'
-import {
-  getEmptyToolPermissionContext,
-  type Tool,
-  type ToolPermissionContext,
-} from '../Tool.js'
 import type { TaskState } from '../tasks/types.js'
+import {
+    getEmptyToolPermissionContext,
+    type Tool,
+    type ToolPermissionContext,
+} from '../Tool.js'
 import type { AgentColorName } from '../tools/AgentTool/agentColorManager.js'
 import type { AgentDefinitionsResult } from '../tools/AgentTool/loadAgentsDir.js'
 import type { AllowedPrompt } from '../tools/ExitPlanModeTool/ExitPlanModeV2Tool.js'
@@ -23,8 +23,8 @@ import type { Message, UserMessage } from '../types/message.js'
 import type { LoadedPlugin, PluginError } from '../types/plugin.js'
 import type { DeepImmutable } from '../types/utils.js'
 import {
-  type AttributionState,
-  createEmptyAttributionState,
+    type AttributionState,
+    createEmptyAttributionState,
 } from '../utils/commitAttribution.js'
 import type { EffortValue } from '../utils/effort.js'
 import type { FileHistoryState } from '../utils/fileHistory.js'
@@ -165,11 +165,7 @@ export type AppState = DeepImmutable<{
   foregroundedTaskId?: string
   // Task ID of in-process teammate whose transcript is being viewed (undefined = leader's view)
   viewingAgentTaskId?: string
-  // Latest companion reaction from the friend observer (src/buddy/observer.ts)
-  companionReaction?: string
-  // Timestamp of last /buddy pet — CompanionSprite renders hearts while recent
-  companionPetAt?: number
-  // TODO (ashwin): see if we can use utility-types DeepReadonly for this
+    // TODO (ashwin): see if we can use utility-types DeepReadonly for this
   mcp: {
     clients: MCPServerConnection[]
     tools: Tool[]
@@ -421,6 +417,8 @@ export type AppState = DeepImmutable<{
   activeOverlays: ReadonlySet<string>
   // Fast mode
   fastMode?: boolean
+  // Token economy mode - aggressive context savings
+  tokenEconomyEnabled?: boolean
   // Advisor model for server-side advisor tool (undefined = disabled).
   advisorModel?: string
   // Effort value
@@ -565,5 +563,6 @@ export function getDefaultAppState(): AppState {
     effortValue: undefined,
     activeOverlays: new Set<string>(),
     fastMode: false,
+    tokenEconomyEnabled: false,
   }
 }

@@ -3,7 +3,7 @@ import { getOauthConfig } from '../../constants/oauth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import { getAuthHeaders } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
-import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
+import { getOpenClaudeUserAgent } from '../../utils/userAgent.js'
 
 /**
  * Fetch the user's first OpenClaude token date and store in config.
@@ -29,7 +29,7 @@ export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
     const response = await axios.get(url, {
       headers: {
         ...authHeaders.headers,
-        'User-Agent': getClaudeCodeUserAgent(),
+        'User-Agent': getOpenClaudeUserAgent(),
       },
       timeout: 10000,
     })

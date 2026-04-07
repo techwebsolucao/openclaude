@@ -18,7 +18,6 @@ import desktop from './commands/desktop/index.js'
 import diff from './commands/diff/index.js'
 import doctor from './commands/doctor/index.js'
 import dream from './commands/dream/index.js'
-import feedback from './commands/feedback/index.js'
 import goodClaude from './commands/good-claude/index.js'
 import help from './commands/help/index.js'
 import ide from './commands/ide/index.js'
@@ -33,10 +32,8 @@ import logout from './commands/logout/index.js'
 import mcp from './commands/mcp/index.js'
 import memory from './commands/memory/index.js'
 import mobile from './commands/mobile/index.js'
-import onboardGithub from './commands/onboard-github/index.js'
 import onboarding from './commands/onboarding/index.js'
 import pr_comments from './commands/pr_comments/index.js'
-import releaseNotes from './commands/release-notes/index.js'
 import rename from './commands/rename/index.js'
 import resume from './commands/resume/index.js'
 import review, { ultrareview } from './commands/review.js'
@@ -46,6 +43,7 @@ import skills from './commands/skills/index.js'
 import status from './commands/status/index.js'
 import tasks from './commands/tasks/index.js'
 import teleport from './commands/teleport/index.js'
+import tokenEconomy from './commands/token-economy/index.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const agentsPlatform =
   process.env.USER_TYPE === 'ant'
@@ -53,7 +51,6 @@ const agentsPlatform =
     : null
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { feature } from 'bun:bundle'
-import { isBuddyEnabled } from './buddy/feature.js'
 import bughunter from './commands/bughunter/index.js'
 import securityReview from './commands/security-review.js'
 import terminalSetup from './commands/terminalSetup/index.js'
@@ -116,11 +113,6 @@ const peersCmd = feature('UDS_INBOX')
 const forkCmd = feature('FORK_SUBAGENT')
   ? (
       require('./commands/fork/index.js') as typeof import('./commands/fork/index.js')
-    ).default
-  : null
-const buddy = isBuddyEnabled()
-  ? (
-      require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
     ).default
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -295,13 +287,11 @@ const COMMANDS = memoize((): Command[] => [
   mobile,
   model,
   routing,
-  onboardGithub,
   outputStyle,
   remoteEnv,
   plugin,
   provider,
   pr_comments,
-  releaseNotes,
   reloadPlugins,
   rename,
   resume,
@@ -313,7 +303,6 @@ const COMMANDS = memoize((): Command[] => [
   stickers,
   tag,
   theme,
-  feedback,
   review,
   ultrareview,
   rewind,
@@ -328,8 +317,7 @@ const COMMANDS = memoize((): Command[] => [
   vim,
   ...(webCmd ? [webCmd] : []),
   ...(forkCmd ? [forkCmd] : []),
-  ...(buddy ? [buddy] : []),
-  ...(proactive ? [proactive] : []),
+    ...(proactive ? [proactive] : []),
   ...(briefCommand ? [briefCommand] : []),
   ...(assistantCommand ? [assistantCommand] : []),
   ...(bridge ? [bridge] : []),
@@ -347,6 +335,7 @@ const COMMANDS = memoize((): Command[] => [
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,
+  tokenEconomy,
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(torch ? [torch] : []),
   ...(process.env.USER_TYPE === 'ant' && !process.env.IS_DEMO
@@ -637,7 +626,6 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
   usage, // Show usage info
   copy, // Copy last message
   btw, // Quick note
-  feedback, // Send feedback
   plan, // Plan mode toggle
   keybindings, // Keybinding management
   statusline, // Status line toggle
@@ -663,7 +651,6 @@ export const BRIDGE_SAFE_COMMANDS: Set<Command> = new Set(
     clear, // Wipe transcript
     cost, // Show session cost
     summary, // Summarize conversation
-    releaseNotes, // Show changelog
     files, // List tracked files
   ].filter((c): c is Command => c !== null),
 )

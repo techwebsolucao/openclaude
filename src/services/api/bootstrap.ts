@@ -19,7 +19,7 @@ import {
   getLocalOpenAICompatibleProviderLabel,
   listOpenAICompatibleModels,
 } from '../../utils/providerDiscovery.js'
-import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
+import { getOpenClaudeUserAgent } from '../../utils/userAgent.js'
 import {
   getAdditionalModelOptionsCacheScope,
   resolveProviderRequest,
@@ -100,7 +100,7 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
       const response = await axios.get<unknown>(endpoint, {
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': getClaudeCodeUserAgent(),
+          'User-Agent': getOpenClaudeUserAgent(),
           ...authHeaders,
         },
         timeout: 5000,

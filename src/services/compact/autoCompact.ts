@@ -11,15 +11,19 @@ import { isEnvTruthy } from '../../utils/envUtils.js'
 import { hasExactErrorMessage } from '../../utils/errors.js'
 import type { CacheSafeParams } from '../../utils/forkedAgent.js'
 import { logError } from '../../utils/log.js'
+import {
+  applyEconomyContextWindow,
+  getEconomyAutocompactBuffer,
+} from '../../utils/tokenEconomy.js'
 import { tokenCountWithEstimation } from '../../utils/tokens.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 import { getMaxOutputTokensForModel } from '../api/claude.js'
 import { notifyCompaction } from '../api/promptCacheBreakDetection.js'
 import { setLastSummarizedMessageId } from '../SessionMemory/sessionMemoryUtils.js'
 import {
-  type CompactionResult,
   compactConversation,
   ERROR_MESSAGE_USER_ABORT,
+  type CompactionResult,
   type RecompactionInfo,
 } from './compact.js'
 import { runPostCompactCleanup } from './postCompactCleanup.js'
@@ -44,6 +48,9 @@ export function getEffectiveContextWindowSize(model: string): number {
       contextWindow = Math.min(contextWindow, parsed)
     }
   }
+
+  // Token economy mode: reduce effective context window
+  contextWindow = applyEconomyContextWindow(contextWindow)
 
   return contextWindow - reservedTokensForSummary
 }
@@ -73,7 +80,8 @@ export function getAutoCompactThreshold(model: string): number {
   const effectiveContextWindow = getEffectiveContextWindowSize(model)
 
   const autocompactThreshold =
-    effectiveContextWindow - AUTOCOMPACT_BUFFER_TOKENS
+    effectiveContextWindow -
+    getEconomyAutocompactBuffer(AUTOCOMPACT_BUFFER_TOKENS)
 
   // Override for easier testing of autocompact
   const envPercent = process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE

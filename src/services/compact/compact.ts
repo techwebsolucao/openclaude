@@ -12,8 +12,8 @@ import { markPostCompaction } from 'src/bootstrap/state.js'
 import { getInvokedSkillsForAgent } from '../../bootstrap/state.js'
 import type { QuerySource } from '../../constants/querySource.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
-import type { Tool, ToolUseContext } from '../../Tool.js'
 import type { LocalAgentTaskState } from '../../tasks/LocalAgentTask/LocalAgentTask.js'
+import type { Tool, ToolUseContext } from '../../Tool.js'
 import { FileReadTool } from '../../tools/FileReadTool/FileReadTool.js'
 import {
   FILE_READ_TOOL_NAME,
@@ -79,6 +79,7 @@ import {
 } from '../../utils/sessionStorage.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
+import { getEconomyCompactMaxOutputTokens, isTokenEconomyEnabled } from '../../utils/tokenEconomy.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { getTaskOutputPath } from '../../utils/task/diskOutput.js'
@@ -1313,7 +1314,7 @@ async function streamCompactSummary({
           isNonInteractiveSession: context.options.isNonInteractiveSession,
           hasAppendSystemPrompt: !!context.options.appendSystemPrompt,
           maxOutputTokensOverride: Math.min(
-            COMPACT_MAX_OUTPUT_TOKENS,
+            isTokenEconomyEnabled() ? getEconomyCompactMaxOutputTokens() : COMPACT_MAX_OUTPUT_TOKENS,
             getMaxOutputTokensForModel(context.options.mainLoopModel),
           ),
           querySource: 'compact',

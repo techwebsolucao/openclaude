@@ -1,5 +1,6 @@
 import { feature } from 'bun:bundle'
 import type { PartialCompactDirection } from '../../types/message.js'
+import { isTokenEconomyEnabled } from '../../utils/tokenEconomy.js'
 
 // Dead code elimination: conditional import for proactive mode
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -271,10 +272,40 @@ const NO_TOOLS_TRAILER =
   'an <analysis> block followed by a <summary> block. ' +
   'Tool calls will be rejected and you will fail the task.'
 
+const NO_TOOLS_TRAILER_ECONOMY =
+  '\n\nREMINDER: Do NOT call any tools. Respond with plain text only. ' +
+  'Tool calls will be rejected.'
+
+/**
+ * Lean compact prompt for token economy mode.
+ * Skips the <analysis> scratchpad (saves ~50% output tokens)
+ * and uses a shorter prompt (saves ~800 input tokens).
+ */
+const ECONOMY_COMPACT_PROMPT = `Summarize this conversation concisely. Capture:
+
+1. User requests and current intent
+2. Files modified/read (with paths and key changes)
+3. Errors encountered and fixes applied
+4. Current work state and immediate next step
+5. Pending tasks not yet started
+
+Be precise with file paths, function names, and code details. Skip examples and verbose formatting.
+Wrap your response in <summary> tags.`
+
 export function getPartialCompactPrompt(
   customInstructions?: string,
   direction: PartialCompactDirection = 'from',
 ): string {
+  // Token economy: reuse the lean economy prompt for partial compaction too
+  if (isTokenEconomyEnabled()) {
+    let prompt = NO_TOOLS_PREAMBLE + ECONOMY_COMPACT_PROMPT
+    if (customInstructions && customInstructions.trim() !== '') {
+      prompt += `\n\nAdditional Instructions:\n${customInstructions}`
+    }
+    prompt += NO_TOOLS_TRAILER_ECONOMY
+    return prompt
+  }
+
   const template =
     direction === 'up_to'
       ? PARTIAL_COMPACT_UP_TO_PROMPT
@@ -291,6 +322,16 @@ export function getPartialCompactPrompt(
 }
 
 export function getCompactPrompt(customInstructions?: string): string {
+  // Token economy: use lean prompt (no <analysis> scratchpad, shorter template)
+  if (isTokenEconomyEnabled()) {
+    let prompt = NO_TOOLS_PREAMBLE + ECONOMY_COMPACT_PROMPT
+    if (customInstructions && customInstructions.trim() !== '') {
+      prompt += `\n\nAdditional Instructions:\n${customInstructions}`
+    }
+    prompt += NO_TOOLS_TRAILER_ECONOMY
+    return prompt
+  }
+
   let prompt = NO_TOOLS_PREAMBLE + BASE_COMPACT_PROMPT
 
   if (customInstructions && customInstructions.trim() !== '') {

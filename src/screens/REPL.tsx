@@ -277,11 +277,10 @@ const WebBrowserPanelModule = feature('WEB_BROWSER_TOOL') ? require('../tools/We
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { IssueFlagBanner } from '../components/PromptInput/IssueFlagBanner.js';
 import { useIssueFlagBanner } from '../hooks/useIssueFlagBanner.js';
-import { CompanionSprite, CompanionFloatingBubble, MIN_COLS_FOR_FULL_SPRITE } from '../buddy/CompanionSprite.js';
-import { isBuddyEnabled } from '../buddy/feature.js';
-import { fireCompanionObserver } from '../buddy/observer.js';
 import { DevBar } from '../components/DevBar.js';
 // Session manager removed - using AppState now
+// Buddy feature removed - MIN_COLS_FOR_FULL_SPRITE was imported from buddy
+const MIN_COLS_FOR_FULL_SPRITE = 80;
 import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js';
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
 import type { RemoteMessageContent } from '../utils/teleport/api.js';
@@ -1304,15 +1303,7 @@ export function REPL({
     } else {
       onScrollAway(handle);
       if (feature('KAIROS')) maybeLoadOlder(handle);
-      // Dismiss the companion bubble on scroll — it's absolute-positioned
-      // at bottom-right and covers transcript content. Scrolling = user is
-      // trying to read something under it.
-      if (isBuddyEnabled()) {
-        setAppState(prev => prev.companionReaction === undefined ? prev : {
-          ...prev,
-          companionReaction: undefined
-        });
-      }
+      // Dismiss the companion bubble on scroll — buddy feature removed
     }
   }, [onRepin, onScrollAway, maybeLoadOlder, setAppState]);
   // Deferred SessionStart hook messages — REPL renders immediately and
@@ -2813,13 +2804,7 @@ export function REPL({
     })) {
       onQueryEvent(event);
     }
-    if (isBuddyEnabled()) {
-      void fireCompanionObserver(messagesRef.current, reaction => setAppState(prev => prev.companionReaction === reaction ? prev : {
-        ...prev,
-        companionReaction: reaction
-      }));
-    }
-    queryCheckpoint('query_end');
+        queryCheckpoint('query_end');
 
     // Capture internal-only API metrics before resetLoadingState clears the ref.
     // For multi-request turns (tool use loops), compute P50 across all requests.
@@ -4574,7 +4559,7 @@ export function REPL({
     {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
     <CancelRequestHandler {...cancelRequestProps} />
     <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
-      <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={isBuddyEnabled() && companionVisible && !companionNarrow ? <CompanionFloatingBubble /> : undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
+      <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
         setCursor(null);
         jumpToNew(scrollRef.current);
       }} scrollable={<>
@@ -4599,9 +4584,8 @@ export function REPL({
         {showSpinner && <SpinnerWithVerb mode={streamMode} spinnerTip={spinnerTip} responseLengthRef={responseLengthRef} apiMetricsRef={apiMetricsRef} overrideMessage={spinnerMessage} spinnerSuffix={stopHookSpinnerSuffix} verbose={verbose} loadingStartTimeRef={loadingStartTimeRef} totalPausedMsRef={totalPausedMsRef} pauseStartTimeRef={pauseStartTimeRef} overrideColor={spinnerColor} overrideShimmerColor={spinnerShimmerColor} hasActiveTools={inProgressToolUseIDs.size > 0} leaderIsIdle={!isLoading} />}
         {!showSpinner && !isLoading && !userInputOnProcessing && !hasRunningTeammates && isBriefOnly && !viewedAgentTask && <BriefIdleStatus />}
         {isFullscreenEnvEnabled() && <PromptInputQueuedCommands />}
-      </>} bottom={<Box flexDirection={isBuddyEnabled() && companionNarrow ? 'column' : 'row'} width="100%" alignItems={isBuddyEnabled() && companionNarrow ? undefined : 'flex-end'}>
-        {isBuddyEnabled() && companionNarrow && isFullscreenEnvEnabled() && companionVisible ? <CompanionSprite /> : null}
-        <Box flexDirection="column" flexGrow={1}>
+      </>} bottom={<Box flexDirection={'row'} width="100%" alignItems={'flex-end'}>
+                <Box flexDirection="column" flexGrow={1}>
           {permissionStickyFooter}
           {/* Immediate local-jsx commands (/btw, /sandbox, /assistant,
                   /issue) render here, NOT inside scrollable. They stay mounted
@@ -5004,7 +4988,6 @@ export function REPL({
           }} />}
           {"external" === 'ant' && <DevBar />}
         </Box>
-        {isBuddyEnabled() && !(companionNarrow && isFullscreenEnvEnabled()) && companionVisible ? <CompanionSprite /> : null}
       </Box>} />
     </MCPConnectionManager>
   </KeybindingSetup>;

@@ -29,7 +29,6 @@ openclaude
 Dentro do OpenClaude:
 
 - rode `/provider` para configurar um perfil de provedor
-- rode `/onboard-github` para usar GitHub Models
 
 > Caso apareça `ripggp not found`, instale o ripgrep no sistema e verifique que `rg --version` funciona antes de iniciar.
 
@@ -39,7 +38,7 @@ Dentro do OpenClaude:
 | --- | --- | --- |
 | OpenAI-compatible | `/provider` ou env vars | OpenAI, OpenRouter, DeepSeek, Groq, Mistral, LM Studio e outros servidores `/v1` |
 | Gemini | `/provider` ou env vars | API key, access token ou local ADC |
-| GitHub Models | `/onboard-github` | Onboarding interativo com credenciais salvas |
+| GitHub Models | `/provider` | Onboarding interativo com credenciais salvas |
 | Codex | `/provider` | Usa credenciais existentes do Codex |
 | Ollama | `/provider` ou env vars | Inferência local sem API key |
 | Atomic Chat | configuração avançada | Backend local Apple Silicon |

@@ -1,8 +1,8 @@
-import { feature } from 'bun:bundle'
 import type { Anthropic } from '@anthropic-ai/sdk'
+import { feature } from 'bun:bundle'
 import {
-  getSystemPrompt,
-  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+    getSystemPrompt,
+    SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 } from 'src/constants/prompts.js'
 import { microcompactMessages } from 'src/services/compact/microCompact.js'
 import { getSdkBetas } from '../bootstrap/state.js'
@@ -10,41 +10,41 @@ import { getCommandName } from '../commands.js'
 import { getSystemContext } from '../context.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
-  AUTOCOMPACT_BUFFER_TOKENS,
-  getEffectiveContextWindowSize,
-  isAutoCompactEnabled,
-  MANUAL_COMPACT_BUFFER_TOKENS,
+    AUTOCOMPACT_BUFFER_TOKENS,
+    getEffectiveContextWindowSize,
+    isAutoCompactEnabled,
+    MANUAL_COMPACT_BUFFER_TOKENS,
 } from '../services/compact/autoCompact.js'
 import {
-  countMessagesTokensWithAPI,
-  countTokensViaHaikuFallback,
-  roughTokenCountEstimation,
+    countMessagesTokensWithAPI,
+    countTokensViaHaikuFallback,
+    roughTokenCountEstimation,
 } from '../services/tokenEstimation.js'
 import { estimateSkillFrontmatterTokens } from '../skills/loadSkillsDir.js'
 import {
-  findToolByName,
-  type Tool,
-  type ToolPermissionContext,
-  type Tools,
-  type ToolUseContext,
-  toolMatchesName,
+    findToolByName,
+    toolMatchesName,
+    type Tool,
+    type ToolPermissionContext,
+    type Tools,
+    type ToolUseContext,
 } from '../Tool.js'
 import type {
-  AgentDefinition,
-  AgentDefinitionsResult,
+    AgentDefinition,
+    AgentDefinitionsResult,
 } from '../tools/AgentTool/loadAgentsDir.js'
 import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
 import {
-  getLimitedSkillToolCommands,
-  getSkillToolInfo as getSlashCommandInfo,
+    getLimitedSkillToolCommands,
+    getSkillToolInfo as getSlashCommandInfo,
 } from '../tools/SkillTool/prompt.js'
 import type {
-  AssistantMessage,
-  AttachmentMessage,
-  Message,
-  NormalizedAssistantMessage,
-  NormalizedUserMessage,
-  UserMessage,
+    AssistantMessage,
+    AttachmentMessage,
+    Message,
+    NormalizedAssistantMessage,
+    NormalizedUserMessage,
+    UserMessage,
 } from '../types/message.js'
 import { toolToAPISchema } from './api.js'
 import { filterInjectedMemoryFiles, getMemoryFiles } from './claudemd.js'
@@ -254,7 +254,8 @@ export async function countToolDefinitionTokens(
       `countToolDefinitionTokens returned ${result} for ${tools.length} tools: ${toolNames.slice(0, 100)}${toolNames.length > 100 ? '...' : ''}`,
     )
   }
-  return result ?? 0
+  // Fall back to rough estimation from schema JSON when API counting unavailable (OpenRouter)
+  return result ?? roughTokenCountEstimation(JSON.stringify(toolSchemas))
 }
 
 /** Extract a human-readable name from a system prompt section's content */
@@ -305,12 +306,12 @@ async function countSystemTokens(
   const systemPromptSections: SystemPromptSectionDetail[] = namedEntries.map(
     (entry, i) => ({
       name: entry.name,
-      tokens: systemTokenCounts[i] || 0,
+      tokens: systemTokenCounts[i] ?? roughTokenCountEstimation(entry.content),
     }),
   )
 
-  const systemPromptTokens = systemTokenCounts.reduce(
-    (sum: number, tokens) => sum + (tokens || 0),
+  const systemPromptTokens = systemPromptSections.reduce(
+    (sum: number, section) => sum + section.tokens,
     0,
   )
 
@@ -344,7 +345,7 @@ async function countMemoryFileTokens(): Promise<{
         [],
       )
 
-      return { file, tokens: tokens || 0 }
+      return { file, tokens: tokens ?? roughTokenCountEstimation(file.content) }
     }),
   )
 
@@ -897,21 +898,22 @@ async function approximateMessageTokens(
   }
 
   // Calculate total tokens using the API for accuracy
-  const approximateMessageTokens = await countTokensWithFallback(
-    normalizeMessagesForAPI(microcompactResult.messages).map(_ => {
-      if (_.type === 'assistant') {
-        return {
-          // Important: strip out fields like id, etc. -- the counting API errors if they're present
-          role: 'assistant',
-          content: _.message.content,
-        }
+  const apiMessages = normalizeMessagesForAPI(microcompactResult.messages).map(_ => {
+    if (_.type === 'assistant') {
+      return {
+        // Important: strip out fields like id, etc. -- the counting API errors if they're present
+        role: 'assistant' as const,
+        content: _.message.content,
       }
-      return _.message
-    }),
-    [],
-  )
+    }
+    return _.message
+  })
+  const approximateMessageTokens = await countTokensWithFallback(apiMessages, [])
 
-  breakdown.totalTokens = approximateMessageTokens ?? 0
+  // Fall back to rough estimation when API counting is unavailable (e.g. OpenRouter)
+  breakdown.totalTokens = approximateMessageTokens ?? roughTokenCountEstimation(
+    JSON.stringify(apiMessages),
+  )
   return breakdown
 }
 

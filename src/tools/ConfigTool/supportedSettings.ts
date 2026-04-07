@@ -1,9 +1,9 @@
 import { feature } from 'bun:bundle'
 import { getRemoteControlAtStartup } from '../../utils/config.js'
 import {
-  EDITOR_MODES,
-  NOTIFICATION_CHANNELS,
-  TEAMMATE_MODES,
+    EDITOR_MODES,
+    NOTIFICATION_CHANNELS,
+    TEAMMATE_MODES,
 } from '../../utils/configConstants.js'
 import { getModelOptions } from '../../utils/model/modelOptions.js'
 import { validateModel } from '../../utils/model/validateModel.js'
@@ -55,6 +55,12 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
     source: 'global',
     type: 'boolean',
     description: 'Auto-compact when context is full',
+  },
+  tokenEconomyEnabled: {
+    source: 'global',
+    type: 'boolean',
+    description:
+      'Token economy mode - triggers compaction earlier (80% vs 93%), lowers context window by 25%, and enforces aggressive diminishing-returns detection to save tokens',
   },
   autoMemoryEnabled: {
     source: 'settings',

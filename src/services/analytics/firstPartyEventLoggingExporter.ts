@@ -29,7 +29,7 @@ import { readJSONLFile } from '../../utils/json.js'
 import { logError } from '../../utils/log.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
+import { getOpenClaudeUserAgent } from '../../utils/userAgent.js'
 import { isOAuthTokenExpired } from '../oauth/client.js'
 import { stripProtoFields } from './index.js'
 import { type EventMetadata, to1PEventFormat } from './metadata.js'
@@ -537,7 +537,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
 
     const baseHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': getClaudeCodeUserAgent(),
+      'User-Agent': getOpenClaudeUserAgent(),
       'x-service-name': 'claude-code',
     }
 

@@ -32,9 +32,9 @@ import {
   getEmptyToolPermissionContext,
   type QueryChainTracking,
   type Tool,
+  toolMatchesName,
   type ToolPermissionContext,
   type Tools,
-  toolMatchesName,
 } from '../../Tool.js'
 import type { AgentDefinition } from '../../tools/AgentTool/loadAgentsDir.js'
 import {
@@ -100,19 +100,20 @@ import {
   extractQuotaStatusFromHeaders,
 } from '../claudeAiLimits.js'
 import { getAPIContextManagement } from '../compact/apiMicrocompact.js'
+import { cacheResponse, getCachedResponse } from './responseCache.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
   ? (require('../../utils/permissions/autoModeState.js') as typeof import('../../utils/permissions/autoModeState.js'))
   : null
 
-import { feature } from 'bun:bundle'
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import {
   APIConnectionTimeoutError,
   APIError,
   APIUserAbortError,
 } from '@anthropic-ai/sdk/error'
+import { feature } from 'bun:bundle'
 import {
   getAfkModeHeaderLatched,
   getCacheEditingHeaderLatched,
@@ -758,6 +759,44 @@ export async function queryModelWithoutStreaming({
   return assistantMessage
 }
 
+/**
+ * Build a synthetic AssistantMessage from cached text content.
+ */
+function createAssistantMessageForCache(textContent: string): AssistantMessage {
+  return {
+    type: 'assistant',
+    uuid: randomUUID(),
+    timestamp: new Date().toISOString(),
+    message: {
+      id: randomUUID(),
+      container: null,
+      model: 'cached',
+      role: 'assistant',
+      stop_reason: 'end_turn',
+      stop_sequence: '',
+      type: 'message',
+      usage: {
+        input_tokens: 0,
+        output_tokens: 0,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+        server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 },
+        service_tier: null,
+        cache_creation: {
+          ephemeral_1h_input_tokens: 0,
+          ephemeral_5m_input_tokens: 0,
+        },
+        inference_geo: null,
+        iterations: null,
+        speed: null,
+      },
+      content: [{ type: 'text', text: textContent } as BetaContentBlock],
+      context_management: null,
+    },
+    requestId: undefined,
+  }
+}
+
 export async function* queryModelWithStreaming({
   messages,
   systemPrompt,
@@ -776,7 +815,21 @@ export async function* queryModelWithStreaming({
   StreamEvent | AssistantMessage | SystemAPIErrorMessage,
   void
 > {
-  return yield* withStreamingVCR(messages, async function* () {
+  // Token economy: check response cache before making API call
+  const cached = getCachedResponse(
+    systemPrompt.join('\n'),
+    messages.map(m => ({ role: m.type === 'assistant' ? 'assistant' : 'user', content: 'message' in m ? (m as AssistantMessage).message?.content : '' })),
+    options.model,
+  )
+  if (cached) {
+    const syntheticMessage = createAssistantMessageForCache(cached.textContent)
+    yield syntheticMessage
+    return
+  }
+
+  // Normal path: stream from provider
+  let lastAssistantMessage: AssistantMessage | undefined
+  for await (const event of withStreamingVCR(messages, async function* () {
     yield* queryModel(
       messages,
       systemPrompt,
@@ -785,7 +838,36 @@ export async function* queryModelWithStreaming({
       signal,
       options,
     )
-  })
+  })) {
+    if (event.type === 'assistant') {
+      lastAssistantMessage = event as AssistantMessage
+    }
+    yield event
+  }
+
+  // Token economy: cache text-only responses (no tool_use)
+  if (lastAssistantMessage) {
+    const content = lastAssistantMessage.message?.content
+    if (content && Array.isArray(content)) {
+      const hasToolUse = content.some((b: BetaContentBlock) => b.type === 'tool_use')
+      if (!hasToolUse) {
+        const textContent = content
+          .filter((b: BetaContentBlock) => b.type === 'text')
+          .map((b: BetaContentBlock) => (b as { type: 'text'; text: string }).text)
+          .join('\n')
+        if (textContent.length > 0) {
+          const estimatedTokens = Math.ceil(textContent.length / 4)
+          cacheResponse(
+            systemPrompt.join('\n'),
+            messages.map(m => ({ role: m.type === 'assistant' ? 'assistant' : 'user', content: 'message' in m ? (m as AssistantMessage).message?.content : '' })),
+            options.model,
+            textContent,
+            estimatedTokens,
+          )
+        }
+      }
+    }
+  }
 }
 
 /**

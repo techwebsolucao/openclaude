@@ -138,12 +138,18 @@ const OPENAI_MAX_OUTPUT_TOKENS: Record<string, number> = {
 
 function lookupByModel<T>(table: Record<string, T>, model: string): T | undefined {
   if (table[model] !== undefined) return table[model]
+
+  // Strip OpenRouter-style provider prefix (e.g. "anthropic/claude-sonnet-4" → "claude-sonnet-4")
+  // before attempting prefix match, so that models accessed via OpenRouter resolve correctly.
+  const stripped = model.includes('/') ? model.slice(model.indexOf('/') + 1) : model
+  if (stripped !== model && table[stripped] !== undefined) return table[stripped]
+
   // Sort keys by length descending so the most specific prefix wins.
   // Without this, 'gpt-4-turbo-preview' could match 'gpt-4' (8k) instead
   // of 'gpt-4-turbo' (128k) depending on V8's key iteration order.
   const sortedKeys = Object.keys(table).sort((a, b) => b.length - a.length)
   for (const key of sortedKeys) {
-    if (model.startsWith(key)) return table[key]
+    if (model.startsWith(key) || stripped.startsWith(key)) return table[key]
   }
   return undefined
 }

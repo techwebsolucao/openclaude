@@ -1,30 +1,30 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type {
-  BetaTool,
-  BetaToolUnion,
+    BetaTool,
+    BetaToolUnion,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import { createHash } from 'crypto'
 import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from 'src/constants/prompts.js'
 import { getSystemContext, getUserContext } from 'src/context.js'
 import { isAnalyticsDisabled } from 'src/services/analytics/config.js'
 import {
-  checkStatsigFeatureGate_CACHED_MAY_BE_STALE,
-  getFeatureValue_CACHED_MAY_BE_STALE,
+    checkStatsigFeatureGate_CACHED_MAY_BE_STALE,
+    getFeatureValue_CACHED_MAY_BE_STALE,
 } from 'src/services/analytics/growthbook.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from 'src/services/analytics/index.js'
 import { prefetchAllMcpResources } from 'src/services/mcp/client.js'
 import type { ScopedMcpServerConfig } from 'src/services/mcp/types.js'
+import { getTools } from 'src/tools.js'
 import { BashTool } from 'src/tools/BashTool/BashTool.js'
 import { FileEditTool } from 'src/tools/FileEditTool/FileEditTool.js'
 import {
-  normalizeFileEditInput,
-  stripTrailingWhitespace,
+    normalizeFileEditInput,
+    stripTrailingWhitespace,
 } from 'src/tools/FileEditTool/utils.js'
 import { FileWriteTool } from 'src/tools/FileWriteTool/FileWriteTool.js'
-import { getTools } from 'src/tools.js'
 import type { AgentId } from 'src/types/ids.js'
 import type { z } from 'zod/v4'
 import { CLI_SYSPROMPT_PREFIXES } from '../constants/system.js'
@@ -37,30 +37,31 @@ import { TASK_OUTPUT_TOOL_NAME } from '../tools/TaskOutputTool/constants.js'
 import type { Message } from '../types/message.js'
 import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
 import {
-  modelSupportsStructuredOutputs,
-  shouldUseGlobalCacheScope,
+    modelSupportsStructuredOutputs,
+    shouldUseGlobalCacheScope,
 } from './betas.js'
 import { getCwd } from './cwd.js'
 import { logForDebugging } from './debug.js'
 import { isEnvTruthy } from './envUtils.js'
 import { createUserMessage } from './messages.js'
 import {
-  getAPIProvider,
-  isFirstPartyAnthropicBaseUrl,
+    getAPIProvider,
+    isFirstPartyAnthropicBaseUrl,
 } from './model/providers.js'
 import {
-  getFileReadIgnorePatterns,
-  normalizePatternsToPath,
+    getFileReadIgnorePatterns,
+    normalizePatternsToPath,
 } from './permissions/filesystem.js'
 import {
-  getPlan,
-  getPlanFilePath,
-  persistFileSnapshotIfRemote,
+    getPlan,
+    getPlanFilePath,
+    persistFileSnapshotIfRemote,
 } from './plans.js'
 import { getPlatform } from './platform.js'
 import { countFilesRoundedRg } from './ripgrep.js'
 import { jsonStringify } from './slowOperations.js'
 import type { SystemPrompt } from './systemPromptType.js'
+import { isTokenEconomyEnabled, truncateContextValueForEconomy } from './tokenEconomy.js'
 import { getToolSchemaCache } from './toolSchemaCache.js'
 import { windowsPathToPosixPath } from './windowsPaths.js'
 import { zodToJsonSchema } from './zodToJsonSchema.js'
@@ -114,6 +115,24 @@ function filterSwarmFieldsFromSchema(
   }
 
   return filtered
+}
+
+/**
+ * Economy mode: cap tool descriptions at ~1200 chars to cut ~5-8k tokens
+ * from the baseline (mainly BashTool ~10k chars, AgentTool ~6k chars).
+ * Keeps the first paragraphs which contain the essential contract;
+ * appends "[trimmed for economy]" when truncated so the model knows.
+ */
+const ECONOMY_TOOL_DESCRIPTION_MAX_CHARS = 1200
+function truncateToolDescription(description: string): string {
+  if (description.length <= ECONOMY_TOOL_DESCRIPTION_MAX_CHARS) return description
+  const cut = description.slice(0, ECONOMY_TOOL_DESCRIPTION_MAX_CHARS)
+  // Try to break at the last newline to avoid mid-sentence cuts
+  const lastNewline = cut.lastIndexOf('\n')
+  const breakpoint = lastNewline > ECONOMY_TOOL_DESCRIPTION_MAX_CHARS * 0.6
+    ? lastNewline
+    : ECONOMY_TOOL_DESCRIPTION_MAX_CHARS
+  return description.slice(0, breakpoint) + '\n[trimmed for economy]'
 }
 
 export async function toolToAPISchema(
@@ -212,9 +231,12 @@ export async function toolToAPISchema(
   // (tool search defers different tools per turn; cache markers move).
   // Explicit field copy avoids mutating the cached base and sidesteps
   // BetaTool.cache_control's `| null` clashing with our narrower type.
+  const description = isTokenEconomyEnabled() && base.description
+    ? truncateToolDescription(base.description)
+    : base.description
   const schema: BetaToolWithExtras = {
     name: base.name,
-    description: base.description,
+    description,
     input_schema: base.input_schema,
     ...(base.strict && { strict: true }),
     ...(base.eager_input_streaming && { eager_input_streaming: true }),
@@ -463,7 +485,7 @@ export function prependUserContext(
       content: `<system-reminder>\nAs you answer the user's questions, you can use the following context:\n${Object.entries(
         context,
       )
-        .map(([key, value]) => `# ${key}\n${value}`)
+        .map(([key, value]) => `# ${key}\n${truncateContextValueForEconomy(value)}`)
         .join('\n')}
 
       IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n`,

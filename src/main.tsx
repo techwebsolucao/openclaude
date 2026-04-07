@@ -997,7 +997,7 @@ async function run(): Promise<CommanderCommand> {
   // `mcp` and `add` as paths, then choked on --transport as an unknown
   // top-level option. Single-value + collect accumulator means each
   // --plugin-dir takes exactly one arg; repeat the flag for multiple dirs.
-  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Claude in Chrome integration').option('--no-chrome', 'Disable Claude in Chrome integration').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
+  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Claude in Chrome integration').option('--no-chrome', 'Disable Claude in Chrome integration').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').option('--token-economy', 'Enable token economy mode (aggressive context savings: earlier compaction, reduced window, stricter diminishing returns)', () => true).action(async (prompt, options) => {
     profileCheckpoint('action_handler_start');
 
     // --bare = one-switch minimal mode. Sets SIMPLE so all the existing
@@ -1007,6 +1007,13 @@ async function run(): Promise<CommanderCommand> {
       bare?: boolean;
     }).bare) {
       process.env.CLAUDE_CODE_SIMPLE = '1';
+    }
+
+    // --token-economy = enable token economy mode for this session
+    if ((options as {
+      tokenEconomy?: boolean;
+    }).tokenEconomy) {
+      process.env.TOKEN_ECONOMY = '1';
     }
 
     // Ignore "code" as a prompt - treat it the same as no prompt
@@ -2316,7 +2323,7 @@ async function run(): Promise<CommanderCommand> {
       const nonMcpErrors = errors.filter(e => !e.mcpErrorMetadata);
       if (
         nonMcpErrors.length > 0 &&
-        !isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI) &&
+        !isEnvTruthy(process.env.OPEN_CLAUDE_USE_OPENAI) &&
         !isEnvTruthy(process.env.CLAUDE_CODE_USE_GITHUB)
       ) {
         await launchInvalidSettingsDialog(root, {

@@ -23,44 +23,45 @@ import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
 } from 'src/services/analytics/index.js'
-import { ImageSizeError } from './utils/imageValidation.js'
-import { ImageResizeError } from './utils/imageResizer.js'
+import {
+  PROMPT_TOO_LONG_ERROR_MESSAGE,
+  isPromptTooLongMessage,
+} from './services/api/errors.js'
+import { generateToolUseSummary } from './services/toolUseSummary/toolUseSummaryGenerator.js'
 import { findToolByName, type ToolUseContext } from './Tool.js'
-import { asSystemPrompt, type SystemPrompt } from './utils/systemPromptType.js'
 import type {
   AssistantMessage,
   AttachmentMessage,
   Message,
   RequestStartEvent,
   StreamEvent,
+  TombstoneMessage,
   ToolUseSummaryMessage,
   UserMessage,
-  TombstoneMessage,
 } from './types/message.js'
-import { logError } from './utils/log.js'
-import {
-  PROMPT_TOO_LONG_ERROR_MESSAGE,
-  isPromptTooLongMessage,
-} from './services/api/errors.js'
-import { logAntError, logForDebugging } from './utils/debug.js'
-import {
-  createUserMessage,
-  createUserInterruptionMessage,
-  normalizeMessagesForAPI,
-  createSystemMessage,
-  createAssistantAPIErrorMessage,
-  getMessagesAfterCompactBoundary,
-  createToolUseSummaryMessage,
-  createMicrocompactBoundaryMessage,
-} from './utils/messages.js'
-import { generateToolUseSummary } from './services/toolUseSummary/toolUseSummaryGenerator.js'
-import { prependUserContext, appendSystemContext } from './utils/api.js'
+import { appendSystemContext, prependUserContext } from './utils/api.js'
 import {
   createAttachmentMessage,
   filterDuplicateMemoryAttachments,
   getAttachmentMessages,
   startRelevantMemoryPrefetch,
 } from './utils/attachments.js'
+import { logAntError, logForDebugging } from './utils/debug.js'
+import { ImageResizeError } from './utils/imageResizer.js'
+import { ImageSizeError } from './utils/imageValidation.js'
+import { logError } from './utils/log.js'
+import {
+  createAssistantAPIErrorMessage,
+  createMicrocompactBoundaryMessage,
+  createSystemMessage,
+  createToolUseSummaryMessage,
+  createUserInterruptionMessage,
+  createUserMessage,
+  getMessagesAfterCompactBoundary,
+  normalizeMessagesForAPI,
+} from './utils/messages.js'
+import { asSystemPrompt, type SystemPrompt } from './utils/systemPromptType.js'
+import { shouldSkipPrefetchesForEconomy } from './utils/tokenEconomy.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const skillPrefetch = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (require('./services/skillSearch/prefetch.js') as typeof import('./services/skillSearch/prefetch.js'))
@@ -69,45 +70,45 @@ const jobClassifier = feature('TEMPLATES')
   ? (require('./jobs/classifier.js') as typeof import('./jobs/classifier.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import {
-  remove as removeFromQueue,
-  getCommandsByMaxPriority,
-  isSlashCommand,
-} from './utils/messageQueueManager.js'
-import { notifyCommandLifecycle } from './utils/commandLifecycle.js'
-import { headlessProfilerCheckpoint } from './utils/headlessProfiler.js'
-import {
-  getRuntimeMainLoopModel,
-  renderModelName,
-} from './utils/model/model.js'
-import {
-  doesMostRecentAssistantMessageExceed200k,
-  finalContextTokensFromLastResponse,
-  tokenCountWithEstimation,
-} from './utils/tokens.js'
-import { ESCALATED_MAX_TOKENS } from './utils/context.js'
-import { getFeatureValue_CACHED_MAY_BE_STALE } from './services/analytics/growthbook.js'
-import { SLEEP_TOOL_NAME } from './tools/SleepTool/prompt.js'
-import { executePostSamplingHooks } from './utils/hooks/postSamplingHooks.js'
-import { executeStopFailureHooks } from './utils/hooks.js'
-import type { QuerySource } from './constants/querySource.js'
-import { StreamingToolExecutor } from './services/tools/StreamingToolExecutor.js'
-import { queryCheckpoint } from './utils/queryProfiler.js'
-import { runTools } from './services/tools/toolOrchestration.js'
-import { applyToolResultBudget } from './utils/toolResultStorage.js'
-import { recordContentReplacement } from './utils/sessionStorage.js'
-import { handleStopHooks } from './query/stopHooks.js'
-import { buildQueryConfig } from './query/config.js'
-import { productionDeps, type QueryDeps } from './query/deps.js'
-import type { Terminal, Continue } from './query/transitions.js'
 import { feature } from 'bun:bundle'
 import {
   getCurrentTurnTokenBudget,
   getTurnOutputTokens,
   incrementBudgetContinuationCount,
 } from './bootstrap/state.js'
-import { createBudgetTracker, checkTokenBudget } from './query/tokenBudget.js'
+import type { QuerySource } from './constants/querySource.js'
+import { buildQueryConfig } from './query/config.js'
+import { productionDeps, type QueryDeps } from './query/deps.js'
+import { handleStopHooks } from './query/stopHooks.js'
+import { checkTokenBudget, createBudgetTracker } from './query/tokenBudget.js'
+import type { Continue, Terminal } from './query/transitions.js'
+import { getFeatureValue_CACHED_MAY_BE_STALE } from './services/analytics/growthbook.js'
+import { StreamingToolExecutor } from './services/tools/StreamingToolExecutor.js'
+import { runTools } from './services/tools/toolOrchestration.js'
+import { SLEEP_TOOL_NAME } from './tools/SleepTool/prompt.js'
 import { count } from './utils/array.js'
+import { notifyCommandLifecycle } from './utils/commandLifecycle.js'
+import { ESCALATED_MAX_TOKENS } from './utils/context.js'
+import { headlessProfilerCheckpoint } from './utils/headlessProfiler.js'
+import { executeStopFailureHooks } from './utils/hooks.js'
+import { executePostSamplingHooks } from './utils/hooks/postSamplingHooks.js'
+import {
+  getCommandsByMaxPriority,
+  isSlashCommand,
+  remove as removeFromQueue,
+} from './utils/messageQueueManager.js'
+import {
+  getRuntimeMainLoopModel,
+  renderModelName,
+} from './utils/model/model.js'
+import { queryCheckpoint } from './utils/queryProfiler.js'
+import { recordContentReplacement } from './utils/sessionStorage.js'
+import {
+  doesMostRecentAssistantMessageExceed200k,
+  finalContextTokensFromLastResponse,
+  tokenCountWithEstimation,
+} from './utils/tokens.js'
+import { applyToolResultBudget } from './utils/toolResultStorage.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const snipModule = feature('HISTORY_SNIP')
@@ -296,10 +297,13 @@ async function* queryLoop(
   // so per-iteration firing would ask sideQuery the same question N times.
   // Consume point polls settledAt (never blocks). `using` disposes on all
   // generator exit paths — see MemoryPrefetch for dispose/telemetry semantics.
-  using pendingMemoryPrefetch = startRelevantMemoryPrefetch(
-    state.messages,
-    state.toolUseContext,
-  )
+  // Token economy mode: skip memory prefetch to avoid wasted side-queries.
+  using pendingMemoryPrefetch = shouldSkipPrefetchesForEconomy()
+    ? undefined
+    : startRelevantMemoryPrefetch(
+        state.messages,
+        state.toolUseContext,
+      )
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -326,11 +330,14 @@ async function* queryLoop(
     // nothing in prod). Turn-0 user-input discovery still blocks in
     // userInputAttachments — that's the one signal where there's no prior
     // work to hide under.
-    const pendingSkillPrefetch = skillPrefetch?.startSkillDiscoveryPrefetch(
-      null,
-      messages,
-      toolUseContext,
-    )
+    // Token economy mode: skip skill discovery to avoid wasted queries.
+    const pendingSkillPrefetch = shouldSkipPrefetchesForEconomy()
+      ? undefined
+      : skillPrefetch?.startSkillDiscoveryPrefetch(
+          null,
+          messages,
+          toolUseContext,
+        )
 
     yield { type: 'stream_request_start' }
 

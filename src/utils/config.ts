@@ -9,8 +9,8 @@ import { getAutoMemEntrypoint } from '../memdir/paths.js'
 import { logEvent } from '../services/analytics/index.js'
 import type { McpServerConfig } from '../services/mcp/types.js'
 import type {
-  BillingType,
-  ReferralEligibilityResponse,
+    BillingType,
+    ReferralEligibilityResponse,
 } from '../services/oauth/types.js'
 import { getCwd } from '../utils/cwd.js'
 import { registerCleanup } from './cleanupRegistry.js'
@@ -150,8 +150,8 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 export type InstallMethod = 'local' | 'native' | 'global' | 'unknown'
 
 export {
-  EDITOR_MODES,
-  NOTIFICATION_CHANNELS
+    EDITOR_MODES,
+    NOTIFICATION_CHANNELS
 } from './configConstants.js'
 
 import type { EDITOR_MODES, NOTIFICATION_CHANNELS } from './configConstants.js'
@@ -241,6 +241,19 @@ export type GlobalConfig = {
   bypassPermissionsModeAccepted?: boolean
   hasUsedBackslashReturn?: boolean
   autoCompactEnabled: boolean // Controls whether auto-compact is enabled
+  tokenEconomyEnabled: boolean // Controls whether token economy mode is enabled (aggressive context savings)
+  /** User-tunable token economy parameters. Each overrides the built-in default when set. */
+  tokenEconomyConfig?: {
+    contextWindowFraction?: number   // 0-1, default 0.75. Fraction of model context to use.
+    autocompactBufferTokens?: number // default 40000. Higher = compact earlier.
+    maxResultSizeChars?: number      // default 20000. Per-tool result cap (chars).
+    maxToolResultsPerMessage?: number // default 80000. Per-message aggregate cap (chars).
+    maxUserContextChars?: number     // default 2000. Truncation for context values.
+    tokenEstimationPadding?: number  // default 1.15. Multiplier for rough estimates.
+    skipPrefetches?: boolean         // default true. Skip memory/skill prefetches.
+    compactMaxOutputTokens?: number  // default 8000. Max output for compact summaries.
+    skipMemoryInstructions?: boolean // default false. Skip memory taxonomy instructions to save ~1.5k tokens.
+  }
   showTurnDuration: boolean // Controls whether to show turn duration message (e.g., "Cooked for 1m 6s")
   /**
    * @deprecated Use settings.env instead.
@@ -275,10 +288,7 @@ export type GlobalConfig = {
     [tipId: string]: number // Key is tipId, value is the numStartups when tip was last shown
   }
 
-  // /buddy companion soul — bones regenerated from userId on read. See src/buddy/.
-  companion?: import('../buddy/types.js').StoredCompanion
-  companionMuted?: boolean
-
+  
   // Feedback survey tracking
   feedbackSurveyState?: {
     lastShownTime?: number
@@ -622,6 +632,7 @@ function createDefaultGlobalConfig(): GlobalConfig {
     verbose: false,
     editorMode: 'normal',
     autoCompactEnabled: true,
+    tokenEconomyEnabled: false,
     showTurnDuration: true,
     hasSeenTasksHint: false,
     hasUsedStash: false,
@@ -668,6 +679,7 @@ export const GLOBAL_CONFIG_KEYS = [
   'editorMode',
   'hasUsedBackslashReturn',
   'autoCompactEnabled',
+  'tokenEconomyEnabled',
   'showTurnDuration',
   'diffTool',
   'env',
