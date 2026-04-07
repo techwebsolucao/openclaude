@@ -2,7 +2,7 @@
 
 OpenClaude é um CLI open-source para agentes de programação via terminal.
 
-Use APIs compatíveis com OpenAI, Gemini, GitHub Models, Codex, Ollama, Atomic Chat e outros provedores mantendo um único fluxo de trabalho no terminal: prompts, ferramentas, agentes, MCP, comandos de barra e streaming de resposta.
+**ATENÇÃO: Atualmente este projeto funciona apenas com OpenRouter.** Use APIs compatíveis com OpenAI mantendo um único fluxo de trabalho no terminal: prompts, ferramentas, agentes, MCP, comandos de barra e streaming de resposta.
 
 [![PR Checks](https://github.com/Gitlawb/openclaude/actions/workflows/pr-checks.yml/badge.svg?branch=main)](https://github.com/Gitlawb/openclaude/actions/workflows/pr-checks.yml)
 [![Release](https://img.shields.io/github/v/tag/Gitlawb/openclaude?label=release&color=0ea5e9)](https://github.com/Gitlawb/openclaude/tags)
@@ -14,9 +14,9 @@ Use APIs compatíveis com OpenAI, Gemini, GitHub Models, Codex, Ollama, Atomic C
 
 ## Por que OpenClaude
 
-- Use um único CLI para APIs de nuvem e modelos locais
+- Use um único CLI para API OpenRouter
 - Salve perfis de provedor com `/provider`
-- Trabalhe com OpenAI-compatible, Gemini, GitHub Models, Codex, Ollama, Atomic Chat e outros
+- Trabalhe com OpenAI-compatible via OpenRouter
 - Fluxo completo de programação via agente: bash, leitura/edição de arquivos, grep, glob, agentes, tarefas, MCP e web tools
 - Extensão VS Code incluso para integração e temas
 
@@ -34,59 +34,52 @@ Dentro do OpenClaude:
 
 ## Provedores suportados
 
+**ATENÇÃO: Atualmente apenas OpenRouter é suportado.**
+
+Você pode usar qualquer modelo disponível na plataforma OpenRouter, incluindo modelos OpenAI (GPT-4o, GPT-4 Turbo), Claude, Gemini, Mistral e outros via API compatível com OpenAI.
+
 | Provedor | Caminho | Notas |
 | --- | --- | --- |
-| OpenAI-compatible | `/provider` ou env vars | OpenAI, OpenRouter, DeepSeek, Groq, Mistral, LM Studio e outros servidores `/v1` |
-| Gemini | `/provider` ou env vars | API key, access token ou local ADC |
-| GitHub Models | `/provider` | Onboarding interativo com credenciais salvas |
-| Codex | `/provider` | Usa credenciais existentes do Codex |
-| Ollama | `/provider` ou env vars | Inferência local sem API key |
-| Atomic Chat | configuração avançada | Backend local Apple Silicon |
-| Bedrock / Vertex / Foundry | env vars | Provedores adicionais para ambientes compatíveis |
+| OpenRouter | `/provider` ou env vars | Acesso a qualquer modelo OpenAI-compatible disponível no OpenRouter |
 
 ## O que funciona
 
 - **Fluxos de código com ferramentas**: Bash, leitura/edição de arquivos, grep, glob, agentes, tarefas, MCP e comandos de barra
 - **Streaming de resposta**: Output de tokens em tempo real e progresso de ferramentas
 - **Tool calling**: Múltiplas chamadas de ferramentas com execução e respostas de acompanhamento
-- **Imagens**: Inputs por URL e base64 para provedores com suporte a visão
+- **Imagens**: Inputs por URL e base64 para modelos com suporte a visão via OpenRouter
 - **Perfis de provedor**: Setup guiado e suporte a `.openclaude-profile.json`
-- **Local e remoto**: Cloud APIs, servidores locais e inferência Apple Silicon
+- **Com OpenRouter**: Acesso a modelos compatíveis com OpenAI via API OpenRouter
 
 ## Notas sobre provedores
 
-OpenClaude suporta múltiplos provedores, mas o comportamento não é idêntico entre todos.
+**ATENÇÃO: OpenClaude atualmente suporta apenas OpenRouter.**
 
-- Recursos específicos da Anthropic podem não estar disponíveis em outros provedores
-- A qualidade das ferramentas depende do modelo selecionado
-- Modelos menores locais podem ter dificuldade com fluxos multi-etapa
-- Alguns provedores têm limites de output menores que os padrões do CLI
+- O projeto foi adaptado para funcionar especificamente com OpenRouter
+- Você pode usar qualquer modelo disponível na plataforma OpenRouter
+- A qualidade das ferramentas depende do modelo selecionado no OpenRouter
+- Todos os modelos OpenAI-compatible do OpenRouter são suportados
 
-Para melhores resultados, use modelos com suporte forte a tool/function calling.
+Para melhores resultados, use modelos com suporte forte a tool/function calling disponíveis no OpenRouter.
 
-## Roteamento de agentes
+## Roteamento de agentes (com OpenRouter)
 
-OpenClaude pode rotear diferentes agentes para diferentes modelos via configurações. Isso é útil para otimização de custo ou separar trabalho por força do modelo.
+OpenClaude pode rotear diferentes agentes para diferentes modelos via configurações. Com OpenRouter, você pode configurar múltiplos modelos disponíveis na plataforma.
 
 Adicione em `~/.openclaude/settings.json`:
 
 ```json
 {
   "agentModels": {
-    "deepseek-chat": {
-      "base_url": "https://api.deepseek.com/v1",
-      "api_key": "sk-your-key"
-    },
     "gpt-4o": {
-      "base_url": "https://api.openai.com/v1",
-      "api_key": "sk-your-key"
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key": "sk-or-your-openrouter-key"
     }
   },
   "agentRouting": {
-    "Explore": "deepseek-chat",
+    "Explore": "gpt-4o",
     "Plan": "gpt-4o",
     "general-purpose": "gpt-4o",
-    "frontend-dev": "deepseek-chat",
     "default": "gpt-4o"
   }
 }
@@ -98,24 +91,13 @@ Quando não há correspondência, o provedor global é usado como fallback.
 
 ## Busca e acesso web
 
-Por padrão, `WebSearch` funciona em modelos não-Anthropic usando DuckDuckGo. Isso dá a GPT-4o, DeepSeek, Gemini, Ollama e outros provedores compatíveis um caminho gratuito de busca web.
+**ATENÇÃO: Funcionalidades de busca web podem ter comportamento limitado com OpenRouter.**
 
-> **Nota:** O fallback DuckDuckGo funciona via scraping e pode ser limitado por rate-limit, bloqueios ou Termos de Serviço. Para uma opção mais confiável, configure Firecrawl.
+Por padrão, `WebSearch` funciona usando DuckDuckGo como fallback.
 
-Para backends Anthropic-nativos e respostas Codex, OpenClaude usa o comportamento nativo do provedor.
+> **Nota:** O fallback DuckDuckGo funciona via scraping e pode ser limitado por rate-limit, bloqueios ou Termos de Serviço.
 
 `WebFetch` funciona, mas o caminho HTTP simples com conversão HTML-para-markdown pode falhar em sites com JavaScript ou que bloqueiam requests plain HTTP.
-
-Configure uma chave [Firecrawl](https://firecrawl.dev) para usar busca/acesso via Firecrawl:
-
-Defina `FIRECRAWL_API_KEY` no seu ambiente. A chave é opcional.
-
-Com Firecrawl:
-
-- `WebSearch` pode usar a API de busca do Firecrawl enquanto DuckDuckGo permanece como caminho gratuito padrão
-- `WebFetch` usa o endpoint de scrape do Firecrawl, lidando corretamente com páginas JS-rendered
-
-O tier gratuito em [firecrawl.dev](https://firecrawl.dev) inclui 500 créditos.
 
 ---
 
