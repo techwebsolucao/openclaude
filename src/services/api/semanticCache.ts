@@ -3,7 +3,6 @@ import envPaths from 'env-paths'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { logForDebugging } from '../../utils/debug.js'
-import { generateLocalEmbedding } from './localEmbedding.js'
 import {
     cosineSimilarity,
     generateEmbedding as generateOllamaEmbedding,
@@ -134,24 +133,19 @@ export function buildCacheQueryText(
 }
 
 /**
- * Generate an embedding using the best available strategy.
- * Ollama (neural) if available, otherwise local (n-gram hashing).
+ * Generate an embedding using Ollama neural embeddings.
+ * Returns null if Ollama is not available — semantic cache is Ollama-only.
  */
 async function generateEmbedding(text: string): Promise<{
   embedding: Float64Array
   source: EmbeddingSource
-}> {
-  // Try Ollama first — higher quality embeddings
-  if (await isOllamaEmbeddingAvailable()) {
-    const ollamaEmb = await generateOllamaEmbedding(text)
-    if (ollamaEmb) {
-      return { embedding: ollamaEmb, source: 'ollama' }
-    }
+} | null> {
+  if (!(await isOllamaEmbeddingAvailable())) {
+    return null
   }
-
-  // Fallback: local n-gram hashing — always works, no deps
-  const localEmb = generateLocalEmbedding(text)
-  return { embedding: localEmb, source: 'local' }
+  const ollamaEmb = await generateOllamaEmbedding(text)
+  if (!ollamaEmb) return null
+  return { embedding: ollamaEmb, source: 'ollama' }
 }
 
 /**
@@ -259,7 +253,9 @@ export async function getSemanticCachedResponse(
   const queryText = buildCacheQueryText(messages, model)
   if (!queryText) return null
 
-  const { embedding: queryEmbedding, source } = await generateEmbedding(queryText)
+  const result = await generateEmbedding(queryText)
+  if (!result) return null // Ollama not available
+  const { embedding: queryEmbedding, source } = result
 
   const index = loadIndex()
   if (index.length === 0) return null
@@ -326,7 +322,9 @@ export async function cacheSemanticResponse(
   const queryText = buildCacheQueryText(messages, model)
   if (!queryText) return
 
-  const { embedding, source } = await generateEmbedding(queryText)
+  const result = await generateEmbedding(queryText)
+  if (!result) return // Ollama not available
+  const { embedding, source } = result
 
   const id = createHash('sha256').update(queryText).digest('hex').slice(0, 16)
 
