@@ -1,2 +1,23 @@
-Apagar /buddy e toda sua referencia. 
+---
 
+Remover topics nao faz sentido ter seria a sugestao de perda de contexto. O que faz sentido é ter a sugestao de perda de contexto quando o usuario muda de assunto, ou seja, quando o topico muda. A sugestao de perda de contexto pode ser algo como "Parece que você mudou de assunto, quer que eu esqueça o contexto anterior?" ou algo do tipo. Assim, o usuario tem a opcao de manter o contexto anterior ou nao, dependendo do que ele quiser.
+
+--- 
+
+Memoria ao abrir a sessao deveria vir setada ja porem nao esta acontecendo isso entao tem que ser setada manualmente, o que nao faz sentido. O ideal seria que a memoria ja viesse setada quando a sessao fosse aberta, assim o usuario nao precisa se preocupar em setar a memoria toda vez que abrir uma nova sessao.
+
+---
+
+Exibir o contexto em runtime do modelo selecionado no cli terminal para o usuario ter uma ideia do que o modelo esta considerando como contexto para a resposta. Isso pode ser feito exibindo o contexto atual do modelo selecionado no terminal, ou seja, mostrando as mensagens anteriores que o modelo esta considerando como contexto para gerar a resposta. Assim, o usuario tem uma ideia do que o modelo esta considerando como contexto e pode decidir se quer manter esse contexto ou nao.
+
+---
+
+ao final de um prompt e executar todas tarefas caso nao tenha nada na fila voce pergunta se deseja comecar um novo contexto ou permanecer no contexto atual, isso pode ser feito exibindo uma mensagem no terminal perguntando se o usuario deseja comecar um novo contexto ou permanecer no contexto atual. Assim, o usuario tem a opcao de comecar um novo contexto ou permanecer no contexto atual, dependendo do que ele quiser.
+
+---
+
+incluir llm local ollama e tambem cache com semantica de similaridade para evitar chamadas desnecessarias ao modelo, ou seja, se o usuario fizer uma pergunta que ja foi respondida anteriormente, o sistema pode verificar se a resposta ja esta no cache e retornar essa resposta em vez de chamar o modelo novamente. Isso pode ser feito utilizando uma tecnica de similaridade semantica para comparar a pergunta atual com as perguntas anteriores e verificar se existe uma resposta similar no cache. Assim, o sistema pode economizar recursos e fornecer respostas mais rapidamente para o usuario.
+
+---
+
+Arrumar estrtura do projeto parece que foi feito interamente por IA esta uma porcaria, tem que ser arrumada para ficar mais organizada e facil de entender. A estrutura do projeto deve ser organizada de forma clara e intuitiva, com pastas e arquivos bem nomeados e organizados de acordo com a funcionalidade. Isso facilita a navegação e a compreensão do projeto, tanto para os desenvolvedores quanto para os usuarios que possam querer contribuir ou entender o funcionamento do sistema.
