@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildCacheQueryText } from './semanticCache.js'
+import { buildCacheQueryText, wordJaccard } from './semanticCache.js'
 
 describe('buildCacheQueryText', () => {
   test('extracts last user message string', () => {
@@ -38,5 +38,48 @@ describe('buildCacheQueryText', () => {
     const messages = [{ role: 'user', content: longText }]
     const result = buildCacheQueryText(messages, 'model')
     expect(result.length).toBe(2000)
+  })
+})
+
+describe('wordJaccard', () => {
+  test('identical queries return 1', () => {
+    expect(wordJaccard(
+      'qual versão do meu laravel',
+      'qual versão do meu laravel',
+    )).toBe(1)
+  })
+
+  test('same-topic different-question returns low overlap', () => {
+    // This is the exact bug scenario: "what version of my laravel"
+    // vs "does my laravel use MVC pattern" should NOT match
+    const overlap = wordJaccard(
+      'qual versão do meu laravel',
+      'no meu laravel ele tem padrão mvc',
+    )
+    // Only "laravel" overlaps after stopword removal → very low Jaccard
+    expect(overlap).toBeLessThan(0.35)
+  })
+
+  test('similar questions return high overlap', () => {
+    const overlap = wordJaccard(
+      'qual versão do meu laravel',
+      'qual é a versão do laravel',
+    )
+    expect(overlap).toBeGreaterThanOrEqual(0.35)
+  })
+
+  test('completely different queries return 0', () => {
+    expect(wordJaccard(
+      'how to sort an array in javascript',
+      'como fazer deploy no docker',
+    )).toBe(0)
+  })
+
+  test('both empty returns 1', () => {
+    expect(wordJaccard('', '')).toBe(1)
+  })
+
+  test('one empty returns 0', () => {
+    expect(wordJaccard('hello world', '')).toBe(0)
   })
 })

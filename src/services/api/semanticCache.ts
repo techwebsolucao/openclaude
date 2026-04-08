@@ -35,10 +35,17 @@ import {
 const paths = envPaths('claude-cli')
 const CACHE_DIR_NAME = 'semantic-cache'
 
-const DEFAULT_SIMILARITY_THRESHOLD = 0.92
+const DEFAULT_SIMILARITY_THRESHOLD = 0.94
 const DEFAULT_LOCAL_SIMILARITY_THRESHOLD = 0.95
 const DEFAULT_MAX_ENTRIES = 200
 const DEFAULT_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+/**
+ * Minimum word-level Jaccard overlap required as a secondary guard.
+ * Prevents false-positive cache hits when queries share a topic (e.g. "laravel")
+ * but ask completely different questions (version vs MVC pattern).
+ */
+const MIN_WORD_OVERLAP = 0.35
 
 type EmbeddingSource = 'ollama' | 'local'
 
@@ -146,6 +153,42 @@ async function generateEmbedding(text: string): Promise<{
   const ollamaEmb = await generateOllamaEmbedding(text)
   if (!ollamaEmb) return null
   return { embedding: ollamaEmb, source: 'ollama' }
+}
+
+// Stopwords in PT + EN to ignore when computing word overlap
+const STOP_WORDS = new Set([
+  // PT
+  'o', 'a', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das',
+  'em', 'no', 'na', 'nos', 'nas', 'por', 'para', 'com', 'sem', 'e',
+  'ou', 'que', 'se', 'ao', 'meu', 'minha', 'ele', 'ela', 'eu', 'é',
+  'tem', 'ter', 'ser', 'está', 'isso', 'esse', 'essa', 'este', 'esta',
+  // EN
+  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+  'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'for',
+  'on', 'with', 'at', 'by', 'from', 'it', 'its', 'this', 'that', 'my',
+  'your', 'his', 'her', 'our', 'i', 'you', 'he', 'she', 'we', 'they',
+  'and', 'or', 'but', 'if', 'not', 'no', 'so', 'up',
+])
+
+/**
+ * Compute Jaccard similarity of significant words between two texts.
+ * Used as a secondary guard against embedding false-positives.
+ */
+export function wordJaccard(a: string, b: string): number {
+  const tokenize = (s: string): Set<string> => {
+    const words = s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/)
+    return new Set(words.filter(w => w.length > 1 && !STOP_WORDS.has(w)))
+  }
+  const setA = tokenize(a)
+  const setB = tokenize(b)
+  if (setA.size === 0 && setB.size === 0) return 1
+  if (setA.size === 0 || setB.size === 0) return 0
+  let intersection = 0
+  for (const w of setA) {
+    if (setB.has(w)) intersection++
+  }
+  return intersection / (setA.size + setB.size - intersection)
 }
 
 /**
@@ -285,6 +328,16 @@ export async function getSemanticCachedResponse(
     logForDebugging(
       `[semantic-cache] MISS (best similarity: ${bestSimilarity.toFixed(4)}, ` +
         `threshold: ${threshold}, source: ${source})`,
+    )
+    return null
+  }
+
+  // Secondary guard: verify word-level overlap to reject same-topic different-question matches
+  const overlap = wordJaccard(queryText, bestMatch.queryText)
+  if (overlap < MIN_WORD_OVERLAP) {
+    logForDebugging(
+      `[semantic-cache] MISS — word overlap too low (${overlap.toFixed(3)}, ` +
+        `min: ${MIN_WORD_OVERLAP}, cosine: ${bestSimilarity.toFixed(4)})`,
     )
     return null
   }
