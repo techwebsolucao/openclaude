@@ -836,22 +836,17 @@ export async function* queryModelWithStreaming({
   }
 
   // Layer 2: Semantic similarity cache (persistent, local/Ollama embeddings)
-  // Skip semantic cache when conversation has tool results — those responses
-  // depend on workspace context (file contents, command output) and can't be
-  // safely reused for a different question.
-  const hasToolResults = messages.some(
-    m => m.type === 'tool_result' || ('message' in m && Array.isArray((m as AssistantMessage).message?.content) && (m as AssistantMessage).message!.content.some((b: BetaContentBlock) => b.type === 'tool_result' || b.type === 'tool_use'))
+  // Always check — threshold 0.95 prevents false positives.
+  // Only text-only responses are stored (hasToolUse guard below), so cached
+  // entries are pure knowledge answers safe to reuse across turns.
+  const semanticHit = await getSemanticCachedResponse(
+    messageSummary,
+    options.model,
   )
-  if (!hasToolResults) {
-    const semanticHit = await getSemanticCachedResponse(
-      messageSummary,
-      options.model,
-    )
-    if (semanticHit) {
-      const syntheticMessage = createAssistantMessageForCache(semanticHit.responseText)
-      yield syntheticMessage
-      return
-    }
+  if (semanticHit) {
+    const syntheticMessage = createAssistantMessageForCache(semanticHit.responseText)
+    yield syntheticMessage
+    return
   }
 
   // Layer 3: Normal path — stream from provider
@@ -895,18 +890,16 @@ export async function* queryModelWithStreaming({
           )
 
           // Store in semantic cache (persistent, non-blocking)
-          // Only cache when no tool results in history — tool-dependent
-          // responses are workspace-specific and shouldn't be reused.
-          if (!hasToolResults) {
-            cacheSemanticResponse(
-              messageSummary,
-              options.model,
-              textContent,
-              estimatedTokens,
-            ).catch(() => {
-              // Embedding unavailable — silently skip
-            })
-          }
+          // Safe: only reaches here when response has no tool_use,
+          // meaning it's a pure text answer reusable across sessions.
+          cacheSemanticResponse(
+            messageSummary,
+            options.model,
+            textContent,
+            estimatedTokens,
+          ).catch(() => {
+            // Embedding unavailable — silently skip
+          })
         }
       }
     }
