@@ -276,3 +276,13 @@ export function isAutoMemPath(absolutePath: string): boolean {
   const normalizedPath = normalize(absolutePath)
   return normalizedPath.startsWith(getAutoMemPath())
 }
+
+/**
+ * Returns the path to the global user memory file.
+ * This file is always injected into every session's context regardless of project.
+ * Users can fill it with their name, preferences, and background info.
+ * Path: {memoryBase}/memory/MEMORY.md  (e.g. ~/.openclaude/memory/MEMORY.md)
+ */
+export function getGlobalUserMemoryPath(): string {
+  return join(getMemoryBaseDir(), 'memory', 'MEMORY.md')
+}

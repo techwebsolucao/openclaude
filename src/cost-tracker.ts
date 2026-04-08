@@ -1,45 +1,46 @@
 import type { BetaUsage as Usage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import chalk from 'chalk'
 import {
-  addToTotalCostState,
-  addToTotalLinesChanged,
-  getCostCounter,
-  getModelUsage,
-  getSdkBetas,
-  getSessionId,
-  getTokenCounter,
-  getTotalAPIDuration,
-  getTotalAPIDurationWithoutRetries,
-  getTotalCacheCreationInputTokens,
-  getTotalCacheReadInputTokens,
-  getTotalCostUSD,
-  getTotalDuration,
-  getTotalInputTokens,
-  getTotalLinesAdded,
-  getTotalLinesRemoved,
-  getTotalOutputTokens,
-  getTotalToolDuration,
-  getTotalWebSearchRequests,
-  getUsageForModel,
-  hasUnknownModelCost,
-  resetCostState,
-  resetStateForTests,
-  setCostStateForRestore,
-  setHasUnknownModelCost,
+    addToTotalCostState,
+    addToTotalLinesChanged,
+    getCostCounter,
+    getModelUsage,
+    getSdkBetas,
+    getSessionId,
+    getTokenCounter,
+    getTotalAPIDuration,
+    getTotalAPIDurationWithoutRetries,
+    getTotalCacheCreationInputTokens,
+    getTotalCacheReadInputTokens,
+    getTotalCostUSD,
+    getTotalDuration,
+    getTotalInputTokens,
+    getTotalLinesAdded,
+    getTotalLinesRemoved,
+    getTotalOutputTokens,
+    getTotalToolDuration,
+    getTotalWebSearchRequests,
+    getUsageForModel,
+    hasUnknownModelCost,
+    resetCostState,
+    resetStateForTests,
+    setCostStateForRestore,
+    setHasUnknownModelCost,
+    setLastInputTokens,
 } from './bootstrap/state.js'
 import type { ModelUsage } from './entrypoints/agentSdkTypes.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from './services/analytics/index.js'
 import { getAdvisorUsage } from './utils/advisor.js'
 import {
-  getCurrentProjectConfig,
-  saveCurrentProjectConfig,
+    getCurrentProjectConfig,
+    saveCurrentProjectConfig,
 } from './utils/config.js'
 import {
-  getContextWindowForModel,
-  getModelMaxOutputTokens,
+    getContextWindowForModel,
+    getModelMaxOutputTokens,
 } from './utils/context.js'
 import { isFastModeEnabled } from './utils/fastMode.js'
 import { formatDuration, formatNumber } from './utils/format.js'
@@ -47,25 +48,10 @@ import type { FpsMetrics } from './utils/fpsTracker.js'
 import { getCanonicalName } from './utils/model/model.js'
 import { calculateUSDCost } from './utils/modelCost.js'
 export {
-  getTotalCostUSD as getTotalCost,
-  getTotalDuration,
-  getTotalAPIDuration,
-  getTotalAPIDurationWithoutRetries,
-  addToTotalLinesChanged,
-  getTotalLinesAdded,
-  getTotalLinesRemoved,
-  getTotalInputTokens,
-  getTotalOutputTokens,
-  getTotalCacheReadInputTokens,
-  getTotalCacheCreationInputTokens,
-  getTotalWebSearchRequests,
-  formatCost,
-  hasUnknownModelCost,
-  resetStateForTests,
-  resetCostState,
-  setHasUnknownModelCost,
-  getModelUsage,
-  getUsageForModel,
+    addToTotalLinesChanged, formatCost, getModelUsage, getTotalAPIDuration,
+    getTotalAPIDurationWithoutRetries, getTotalCacheCreationInputTokens, getTotalCacheReadInputTokens, getTotalCostUSD as getTotalCost,
+    getTotalDuration, getTotalInputTokens, getTotalLinesAdded,
+    getTotalLinesRemoved, getTotalOutputTokens, getTotalWebSearchRequests, getUsageForModel, hasUnknownModelCost, resetCostState, resetStateForTests, setHasUnknownModelCost
 }
 
 type StoredCostState = {
@@ -265,6 +251,10 @@ function addToTotalModelUsage(
 
   modelUsage.inputTokens += usage.input_tokens
   modelUsage.outputTokens += usage.output_tokens
+  // Track last single-request prompt tokens for context window % display
+  if (usage.input_tokens > 0) {
+    setLastInputTokens(usage.input_tokens)
+  }
   modelUsage.cacheReadInputTokens += usage.cache_read_input_tokens ?? 0
   modelUsage.cacheCreationInputTokens += usage.cache_creation_input_tokens ?? 0
   modelUsage.webSearchRequests +=

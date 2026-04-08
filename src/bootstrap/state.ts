@@ -709,6 +709,15 @@ export function getTotalOutputTokens(): number {
   return sumBy(Object.values(STATE.modelUsage), 'outputTokens')
 }
 
+// Last single-request prompt token count — represents actual context window usage.
+let _lastInputTokens = 0
+export function getLastInputTokens(): number {
+  return _lastInputTokens
+}
+export function setLastInputTokens(n: number): void {
+  _lastInputTokens = n
+}
+
 export function getTotalCacheReadInputTokens(): number {
   return sumBy(Object.values(STATE.modelUsage), 'cacheReadInputTokens')
 }
@@ -872,6 +881,7 @@ export function resetCostState(): void {
   STATE.hasUnknownModelCost = false
   STATE.modelUsage = {}
   STATE.promptId = null
+  _lastInputTokens = 0
 }
 
 /**

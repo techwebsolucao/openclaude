@@ -5,20 +5,21 @@
 import { feature } from 'bun:bundle'
 import { randomUUID, type UUID } from 'crypto'
 import {
-    getLastMainRequestId,
-    getOriginalCwd,
-    getSessionId,
-    regenerateSessionId,
+  getLastMainRequestId,
+  getOriginalCwd,
+  getSessionId,
+  regenerateSessionId,
+  resetCostState,
 } from '../../bootstrap/state.js'
 import {
-    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    logEvent,
+  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+  logEvent,
 } from '../../services/analytics/index.js'
 import type { AppState } from '../../state/AppState.js'
 import { isInProcessTeammateTask } from '../../tasks/InProcessTeammateTask/types.js'
 import {
-    isLocalAgentTask,
-    type LocalAgentTaskState,
+  isLocalAgentTask,
+  type LocalAgentTaskState,
 } from '../../tasks/LocalAgentTask/LocalAgentTask.js'
 import { isLocalShellTask } from '../../tasks/LocalShellTask/guards.js'
 import { asAgentId } from '../../types/ids.js'
@@ -26,26 +27,23 @@ import type { Message } from '../../types/message.js'
 import { createEmptyAttributionState } from '../../utils/commitAttribution.js'
 import type { FileStateCache } from '../../utils/fileStateCache.js'
 import {
-    executeSessionEndHooks,
-    getSessionEndHookTimeoutMs,
+  executeSessionEndHooks,
+  getSessionEndHookTimeoutMs,
 } from '../../utils/hooks.js'
 import { logError } from '../../utils/log.js'
 import { clearAllPlanSlugs } from '../../utils/plans.js'
 import { processSessionStartHooks } from '../../utils/sessionStart.js'
 import {
-    clearSessionMetadata,
-    getAgentTranscriptPath,
-    resetSessionFilePointer,
-    saveWorktreeState,
+  clearSessionMetadata,
+  getAgentTranscriptPath,
+  resetSessionFilePointer,
+  saveWorktreeState,
 } from '../../utils/sessionStorage.js'
 import { setCwd } from '../../utils/Shell.js'
 import {
-    evictTaskOutput,
-    initTaskOutputAsSymlink,
+  evictTaskOutput,
+  initTaskOutputAsSymlink,
 } from '../../utils/task/diskOutput.js'
-import {
-    setLastTopicShiftInput,
-} from '../../utils/topicShiftDetector.js'
 import { getCurrentWorktreeSession } from '../../utils/worktree.js'
 import { clearSessionCaches } from './caches.js'
 
@@ -111,8 +109,8 @@ export async function clearConversation({
 
   setMessages(() => [])
 
-  // Clear topic shift detection state
-  setLastTopicShiftInput(null)
+  // Reset cost/token tracking for the new session
+  resetCostState()
 
   // Clear context-blocked flag so proactive ticks resume after /clear
   if (feature('PROACTIVE') || feature('KAIROS')) {

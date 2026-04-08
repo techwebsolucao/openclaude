@@ -2349,8 +2349,12 @@ async function* queryModel(
               lastMsg.message.stop_reason = stopReason
             }
 
-            // Update cost
-            const costUSDForPart = calculateUSDCost(resolvedModel, usage)
+            // Update cost — prefer provider-reported cost (e.g. OpenRouter)
+            // over internal calculation which may use wrong model pricing.
+            const providerCost = (part.usage as unknown as Record<string, unknown>)?._provider_cost_usd
+            const costUSDForPart = typeof providerCost === 'number'
+              ? providerCost
+              : calculateUSDCost(resolvedModel, usage)
             costUSD += addToTotalSessionCost(
               costUSDForPart,
               usage,

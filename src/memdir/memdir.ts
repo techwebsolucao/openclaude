@@ -416,6 +416,7 @@ export function buildSearchingPastContextSection(autoMemDir: string): string[] {
  *
  * Returns null when auto memory is disabled.
  */
+
 export async function loadMemoryPrompt(): Promise<string | null> {
   const autoEnabled = isAutoMemoryEnabled()
 

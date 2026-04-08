@@ -1,11 +1,13 @@
 import { feature } from 'bun:bundle';
 import * as React from 'react';
-import { memo, type ReactNode, useMemo, useRef } from 'react';
+import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { isBridgeEnabled } from '../../bridge/bridgeEnabled.js';
 import { getBridgeStatus } from '../../bridge/bridgeStatusUtil.js';
+import { getSdkBetas } from '../../bootstrap/state.js';
 import { useSetPromptOverlay } from '../../context/promptOverlayContext.js';
 import type { VerificationStatus } from '../../hooks/useApiKeyVerification.js';
 import type { IDESelection } from '../../hooks/useIdeSelection.js';
+import { useMainLoopModel } from '../../hooks/useMainLoopModel.js';
 import { useSettings } from '../../hooks/useSettings.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { Box, Text } from '../../ink.js';
@@ -15,7 +17,11 @@ import type { ToolPermissionContext } from '../../Tool.js';
 import type { Message } from '../../types/message.js';
 import type { PromptInputMode, VimMode } from '../../types/textInputTypes.js';
 import type { AutoUpdaterResult } from '../../utils/autoUpdater.js';
+import { getContextWindowForModel } from '../../utils/context.js';
+import { getLastInputTokens } from '../../bootstrap/state.js';
+import { getTotalInputTokens, getTotalOutputTokens, getTotalCost } from '../../cost-tracker.js';
 import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js';
+import { type ModelName, renderModelName } from '../../utils/model/model.js';
 import { isUndercover } from '../../utils/undercover.js';
 import { CoordinatorTaskPanel, useCoordinatorTaskCount } from '../CoordinatorAgentStatus.js';
 import { getLastAssistantMessageId, StatusLine, statusLineShouldDisplay } from '../StatusLine.js';
@@ -23,6 +29,40 @@ import { Notifications } from './Notifications.js';
 import { PromptInputFooterLeftSide } from './PromptInputFooterLeftSide.js';
 import { PromptInputFooterSuggestions, type SuggestionItem } from './PromptInputFooterSuggestions.js';
 import { PromptInputHelpMenu } from './PromptInputHelpMenu.js';
+
+function fmtK(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+function buildTokenCounterText(model: ModelName): string {
+  const input = getTotalInputTokens();
+  const output = getTotalOutputTokens();
+  const lastInput = getLastInputTokens();
+  const ctxWindow = getContextWindowForModel(model, getSdkBetas());
+  const ctxUsed = lastInput + output;
+  const pct = ctxWindow > 0 ? Math.round((ctxUsed / ctxWindow) * 100) : 0;
+  const cost = getTotalCost();
+  const name = renderModelName(model);
+  const shortName = name.includes('/') ? name.split('/').slice(1).join('/') : name;
+  const costStr = cost >= 0.01 ? `$${cost.toFixed(2)}` : cost > 0 ? `$${cost.toFixed(4)}` : '$0';
+  return `✻ ${shortName} · ${fmtK(ctxUsed)}/${fmtK(ctxWindow)} (${pct}%) · ↓${fmtK(input)} ↑${fmtK(output)} · ${costStr}`;
+}
+
+function TokenCounterBar(): React.ReactNode {
+  const model = useMainLoopModel();
+  const [text, setText] = useState(() => buildTokenCounterText(model));
+  const modelRef = useRef(model);
+  modelRef.current = model;
+  useEffect(() => {
+    const update = () => setText(buildTokenCounterText(modelRef.current));
+    update();
+    const id = setInterval(update, 2000);
+    return () => clearInterval(id);
+  }, []);
+  return <Text dimColor wrap="truncate">{text}</Text>;
+}
+
 type Props = {
   apiKeyStatus: VerificationStatus;
   debug: boolean;
@@ -139,6 +179,7 @@ function PromptInputFooter({
       <Box flexDirection={isNarrow ? 'column' : 'row'} justifyContent={isNarrow ? 'flex-start' : 'space-between'} paddingX={2} gap={isNarrow ? 0 : 1}>
         <Box flexDirection="column" flexShrink={isNarrow ? 0 : 1}>
           {mode === 'prompt' && !isShort && !exitMessage.show && !isPasting && statusLineShouldDisplay(settings) && <StatusLine messagesRef={messagesRef} lastAssistantMessageId={lastAssistantMessageId} vimMode={vimMode} />}
+          {mode === 'prompt' && !exitMessage.show && !isPasting && <TokenCounterBar />}
           <PromptInputFooterLeftSide exitMessage={exitMessage} vimMode={vimMode} mode={mode} toolPermissionContext={toolPermissionContext} suppressHint={suppressHint} isLoading={isLoading} tasksSelected={pillSelected} teamsSelected={teamsSelected} teammateFooterIndex={teammateFooterIndex} tmuxSelected={tmuxSelected} isPasting={isPasting} isSearching={isSearching} historyQuery={historyQuery} setHistoryQuery={setHistoryQuery} historyFailedMatch={historyFailedMatch} onOpenTasksDialog={onOpenTasksDialog} />
         </Box>
         <Box flexShrink={1} gap={1}>

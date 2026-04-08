@@ -7,8 +7,7 @@ import { isEnvDefinedFalsy, isEnvTruthy } from '../../utils/envUtils.js'
 import { toError } from '../../utils/errors.js'
 import {
   type CacheSafeParams,
-  createCacheSafeParams,
-  runForkedAgent,
+  runForkedAgent
 } from '../../utils/forkedAgent.js'
 import type { REPLHookContext } from '../../utils/hooks/postSamplingHooks.js'
 import { logError } from '../../utils/log.js'
@@ -24,7 +23,9 @@ import {
   logEvent,
 } from '../analytics/index.js'
 import { currentLimits } from '../claudeAiLimits.js'
-import { isSpeculationEnabled, startSpeculation } from './speculation.js'
+import { ContextSuggestionEvaluator } from '../ContextSuggestion/index.js'
+
+const contextSuggestionEvaluator = new ContextSuggestionEvaluator()
 
 let currentAbortController: AbortController | null = null
 
@@ -188,38 +189,44 @@ export async function executePromptSuggestion(
 
   currentAbortController = new AbortController()
   const abortController = currentAbortController
-  const cacheSafeParams = createCacheSafeParams(context)
 
   try {
-    const result = await tryGenerateSuggestion(
-      abortController,
+    const appState = context.toolUseContext.getAppState()
+
+    // Use context suggestion strategy instead of LLM-based topic suggestions.
+    // This evaluates local signals (task queue, conversation length, pending
+    // tool calls) to decide whether to suggest clearing context.
+    const contextSuggestion = contextSuggestionEvaluator.evaluate(
       context.messages,
-      context.toolUseContext.getAppState,
-      cacheSafeParams,
-      'cli',
+      appState,
     )
-    if (!result) return
+
+    if (abortController.signal.aborted) {
+      logSuggestionSuppressed('aborted', undefined, undefined, 'cli')
+      return
+    }
+
+    if (!contextSuggestion) {
+      logSuggestionSuppressed('no_context_suggestion', undefined, undefined, 'cli')
+      return
+    }
+
+    logEvent('tengu_prompt_suggestion', {
+      source: 'cli' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+      outcome: 'context_clear_shown' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+      reason: contextSuggestion.reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    })
 
     context.toolUseContext.setAppState(prev => ({
       ...prev,
       promptSuggestion: {
-        text: result.suggestion,
-        promptId: result.promptId,
+        text: contextSuggestion.text,
+        promptId: 'user_intent',
         shownAt: 0,
         acceptedAt: 0,
-        generationRequestId: result.generationRequestId,
+        generationRequestId: null,
       },
     }))
-
-    if (isSpeculationEnabled() && result.suggestion) {
-      void startSpeculation(
-        result.suggestion,
-        context,
-        context.toolUseContext.setAppState,
-        false,
-        cacheSafeParams,
-      )
-    }
   } catch (error) {
     if (
       error instanceof Error &&

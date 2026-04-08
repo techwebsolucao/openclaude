@@ -1,91 +1,83 @@
 // biome-ignore-all assist/source/organizeImports: internal-only import markers must not be reordered
+import type {
+  Base64ImageSource,
+  ContentBlockParam,
+  ImageBlockParam,
+} from '@anthropic-ai/sdk/resources/messages.mjs'
+import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
+import { randomUUID, type UUID } from 'crypto'
+import { readdir, stat } from 'fs/promises'
+import uniqBy from 'lodash-es/uniqBy.js'
+import { dirname, parse, relative, resolve } from 'path'
 import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
 } from 'src/services/analytics/index.js'
-import {
-  toolMatchesName,
-  type Tools,
-  type ToolUseContext,
-  type ToolPermissionContext,
-} from '../Tool.js'
-import {
-  FileReadTool,
-  MaxFileReadTokenExceededError,
-  type Output as FileReadToolOutput,
-  readImageWithTokenBudget,
-} from '../tools/FileReadTool/FileReadTool.js'
-import { FileTooLargeError, readFileInRange } from './readFileInRange.js'
-import { expandPath } from './path.js'
-import { countCharInString } from './stringUtils.js'
-import { count, uniq } from './array.js'
-import { getFsImplementation } from './fsOperations.js'
-import { readdir, stat } from 'fs/promises'
-import type { IDESelection } from '../hooks/useIdeSelection.js'
-import { TODO_WRITE_TOOL_NAME } from '../tools/TodoWriteTool/constants.js'
-import { TASK_CREATE_TOOL_NAME } from '../tools/TaskCreateTool/constants.js'
-import { TASK_UPDATE_TOOL_NAME } from '../tools/TaskUpdateTool/constants.js'
-import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
-import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
-import type { TodoList } from './todo/types.js'
-import {
-  type Task,
-  listTasks,
-  getTaskListId,
-  isTodoV2Enabled,
-} from './tasks.js'
-import { getPlanFilePath, getPlan } from './plans.js'
-import { getConnectedIdeName } from './ide.js'
-import {
-  filterInjectedMemoryFiles,
-  getManagedAndUserConditionalRules,
-  getMemoryFiles,
-  getMemoryFilesForNestedDirectory,
-  getConditionalRulesForCwdLevelDirectory,
-  type MemoryFileInfo,
-} from './claudemd.js'
-import { dirname, parse, relative, resolve } from 'path'
-import { getCwd } from 'src/utils/cwd.js'
-import { getViewedTeammateTask } from '../state/selectors.js'
-import { logError } from './log.js'
-import { logAntError } from './debug.js'
-import { isENOENT, toError } from './errors.js'
-import type { DiagnosticFile } from '../services/diagnosticTracking.js'
-import { diagnosticTracker } from '../services/diagnosticTracking.js'
+import { getSnippetForTwoFileDiff } from 'src/tools/FileEditTool/utils.js'
 import type {
   AttachmentMessage,
   Message,
   MessageOrigin,
 } from 'src/types/message.js'
 import {
-  type QueuedCommand,
   getImagePasteIds,
   isValidImagePaste,
+  type QueuedCommand,
 } from 'src/types/textInputTypes.js'
-import { randomUUID, type UUID } from 'crypto'
-import { getSettings_DEPRECATED } from './settings/settings.js'
-import { getSnippetForTwoFileDiff } from 'src/tools/FileEditTool/utils.js'
-import type {
-  ContentBlockParam,
-  ImageBlockParam,
-  Base64ImageSource,
-} from '@anthropic-ai/sdk/resources/messages.mjs'
-import { maybeResizeAndDownsampleImageBlock } from './imageResizer.js'
-import type { PastedContent } from './config.js'
-import { getGlobalConfig } from './config.js'
-import {
-  getDefaultSonnetModel,
-  getDefaultHaikuModel,
-  getDefaultOpusModel,
-} from './model/model.js'
-import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js'
-import { getSkillToolCommands, getMcpSkillCommands } from '../commands.js'
-import type { Command } from '../types/command.js'
-import uniqBy from 'lodash-es/uniqBy.js'
+import { getCwd } from 'src/utils/cwd.js'
 import { getProjectRoot } from '../bootstrap/state.js'
-import { formatCommandsWithinBudget } from '../tools/SkillTool/prompt.js'
-import { getContextWindowForModel } from './context.js'
+import { getMcpSkillCommands, getSkillToolCommands } from '../commands.js'
+import type { IDESelection } from '../hooks/useIdeSelection.js'
+import type { DiagnosticFile } from '../services/diagnosticTracking.js'
+import { diagnosticTracker } from '../services/diagnosticTracking.js'
 import type { DiscoverySignal } from '../services/skillSearch/signals.js'
+import { getViewedTeammateTask } from '../state/selectors.js'
+import {
+  toolMatchesName,
+  type ToolPermissionContext,
+  type Tools,
+  type ToolUseContext,
+} from '../Tool.js'
+import { BASH_TOOL_NAME } from '../tools/BashTool/toolName.js'
+import {
+  FileReadTool,
+  MaxFileReadTokenExceededError,
+  readImageWithTokenBudget,
+  type Output as FileReadToolOutput,
+} from '../tools/FileReadTool/FileReadTool.js'
+import { SKILL_TOOL_NAME } from '../tools/SkillTool/constants.js'
+import { formatCommandsWithinBudget } from '../tools/SkillTool/prompt.js'
+import { TASK_CREATE_TOOL_NAME } from '../tools/TaskCreateTool/constants.js'
+import { TASK_UPDATE_TOOL_NAME } from '../tools/TaskUpdateTool/constants.js'
+import { TODO_WRITE_TOOL_NAME } from '../tools/TodoWriteTool/constants.js'
+import type { Command } from '../types/command.js'
+import { uniq } from './array.js'
+import {
+  getConditionalRulesForCwdLevelDirectory,
+  getManagedAndUserConditionalRules,
+  getMemoryFilesForNestedDirectory,
+  type MemoryFileInfo
+} from './claudemd.js'
+import type { PastedContent } from './config.js'
+import { getContextWindowForModel } from './context.js'
+import { logAntError } from './debug.js'
+import { isENOENT, toError } from './errors.js'
+import { getFsImplementation } from './fsOperations.js'
+import { getConnectedIdeName } from './ide.js'
+import { maybeResizeAndDownsampleImageBlock } from './imageResizer.js'
+import { logError } from './log.js'
+import { expandPath } from './path.js'
+import { getPlan, getPlanFilePath } from './plans.js'
+import { FileTooLargeError, readFileInRange } from './readFileInRange.js'
+import { getSettings_DEPRECATED } from './settings/settings.js'
+import { countCharInString } from './stringUtils.js'
+import {
+  getTaskListId,
+  isTodoV2Enabled,
+  listTasks,
+  type Task,
+} from './tasks.js'
+import type { TodoList } from './todo/types.js'
 // Conditional require for DCE. All skill-search string literals that would
 // otherwise leak into external builds live inside these modules. The only
 // surfaces in THIS file are: the maybe() call (gated via spread below) and
@@ -104,61 +96,90 @@ const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
   ? (require('./permissions/autoModeState.js') as typeof import('./permissions/autoModeState.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import {
-  MAX_LINES_TO_READ,
-  FILE_READ_TOOL_NAME,
-} from 'src/tools/FileReadTool/prompt.js'
+import { feature } from 'bun:bundle'
+import type {
+  HookEvent,
+  SyncHookJSONOutput,
+} from 'src/entrypoints/agentSdkTypes.js'
 import { getDefaultFileReadingLimits } from 'src/tools/FileReadTool/limits.js'
-import { cacheKeys, type FileStateCache } from './fileStateCache.js'
+import {
+  FILE_READ_TOOL_NAME,
+  MAX_LINES_TO_READ,
+} from 'src/tools/FileReadTool/prompt.js'
+import {
+  getCurrentTurnTokenBudget,
+  getKairosActive,
+  getLastEmittedDate,
+  getOriginalCwd,
+  getSdkBetas,
+  getSessionId,
+  getTotalCostUSD,
+  getTotalOutputTokens,
+  getTurnOutputTokens,
+  hasExitedPlanModeInSession,
+  needsAutoModeExitAttachment,
+  needsPlanModeExitAttachment,
+  setHasExitedPlanMode,
+  setLastEmittedDate,
+  setNeedsAutoModeExitAttachment,
+  setNeedsPlanModeExitAttachment,
+} from '../bootstrap/state.js'
+import type { QuerySource } from '../constants/querySource.js'
+import {
+  checkForLSPDiagnostics,
+  clearAllLSPDiagnostics,
+} from '../services/lsp/LSPDiagnosticRegistry.js'
+import { mcpInfoFromString } from '../services/mcp/mcpStringUtils.js'
+import type { MCPServerConnection } from '../services/mcp/types.js'
+import type { TaskStatus, TaskType } from '../Task.js'
+import { drainPendingMessages } from '../tasks/LocalAgentTask/LocalAgentTask.js'
+import { AGENT_TOOL_NAME } from '../tools/AgentTool/constants.js'
+import type { AgentDefinition } from '../tools/AgentTool/loadAgentsDir.js'
+import { filterAgentsByMcpRequirements } from '../tools/AgentTool/loadAgentsDir.js'
+import {
+  formatAgentLine,
+  shouldInjectAgentListInMessages,
+} from '../tools/AgentTool/prompt.js'
 import {
   createAbortController,
   createChildAbortController,
 } from './abortController.js'
+import { getSubscriptionType } from './auth.js'
+import { CLAUDE_IN_CHROME_MCP_SERVER_NAME } from './claudeInChrome/common.js'
+import { CHROME_TOOL_SEARCH_INSTRUCTIONS } from './claudeInChrome/prompt.js'
+import { logForDebugging } from './debug.js'
+import { getClaudeConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { isAbortError } from './errors.js'
 import {
   getFileModificationTimeAsync,
   isFileWithinReadSizeLimit,
 } from './file.js'
-import type { AgentDefinition } from '../tools/AgentTool/loadAgentsDir.js'
-import { filterAgentsByMcpRequirements } from '../tools/AgentTool/loadAgentsDir.js'
-import { AGENT_TOOL_NAME } from '../tools/AgentTool/constants.js'
+import { cacheKeys, type FileStateCache } from './fileStateCache.js'
 import {
-  formatAgentLine,
-  shouldInjectAgentListInMessages,
-} from '../tools/AgentTool/prompt.js'
-import { filterDeniedAgents } from './permissions/permissions.js'
-import { getSubscriptionType } from './auth.js'
-import { mcpInfoFromString } from '../services/mcp/mcpStringUtils.js'
+  checkForAsyncHookResponses,
+  removeDeliveredAsyncHooks,
+} from './hooks/AsyncHookRegistry.js'
+import {
+  getMcpInstructionsDelta,
+  isMcpInstructionsDeltaEnabled,
+  type ClientSideInstruction,
+} from './mcpInstructionsDelta.js'
+import { isHumanTurn } from './messagePredicates.js'
+import {
+  extractTextContent,
+  getUserMessageText,
+  isThinkingMessage,
+} from './messages.js'
 import {
   matchingRuleForInput,
-  pathInAllowedWorkingPath,
+  pathInAllowedWorkingPath
 } from './permissions/filesystem.js'
-import {
-  generateTaskAttachments,
-  applyTaskOffsetsAndEvictions,
-} from './task/framework.js'
+import { filterDeniedAgents } from './permissions/permissions.js'
 import { getTaskOutputPath } from './task/diskOutput.js'
-import { drainPendingMessages } from '../tasks/LocalAgentTask/LocalAgentTask.js'
-import type { TaskType, TaskStatus } from '../Task.js'
 import {
-  getOriginalCwd,
-  getSessionId,
-  getSdkBetas,
-  getTotalCostUSD,
-  getTotalOutputTokens,
-  getCurrentTurnTokenBudget,
-  getTurnOutputTokens,
-  hasExitedPlanModeInSession,
-  setHasExitedPlanMode,
-  needsPlanModeExitAttachment,
-  setNeedsPlanModeExitAttachment,
-  needsAutoModeExitAttachment,
-  setNeedsAutoModeExitAttachment,
-  getLastEmittedDate,
-  setLastEmittedDate,
-  getKairosActive,
-} from '../bootstrap/state.js'
-import type { QuerySource } from '../constants/querySource.js'
+  applyTaskOffsetsAndEvictions,
+  generateTaskAttachments,
+} from './task/framework.js'
 import {
   getDeferredToolsDelta,
   isDeferredToolsDeltaEnabled,
@@ -167,35 +188,6 @@ import {
   modelSupportsToolReference,
   type DeferredToolsDeltaScanContext,
 } from './toolSearch.js'
-import {
-  getMcpInstructionsDelta,
-  isMcpInstructionsDeltaEnabled,
-  type ClientSideInstruction,
-} from './mcpInstructionsDelta.js'
-import { CLAUDE_IN_CHROME_MCP_SERVER_NAME } from './claudeInChrome/common.js'
-import { CHROME_TOOL_SEARCH_INSTRUCTIONS } from './claudeInChrome/prompt.js'
-import type { MCPServerConnection } from '../services/mcp/types.js'
-import type {
-  HookEvent,
-  SyncHookJSONOutput,
-} from 'src/entrypoints/agentSdkTypes.js'
-import {
-  checkForAsyncHookResponses,
-  removeDeliveredAsyncHooks,
-} from './hooks/AsyncHookRegistry.js'
-import {
-  checkForLSPDiagnostics,
-  clearAllLSPDiagnostics,
-} from '../services/lsp/LSPDiagnosticRegistry.js'
-import { logForDebugging } from './debug.js'
-import {
-  extractTextContent,
-  getUserMessageText,
-  isThinkingMessage,
-} from './messages.js'
-import { isHumanTurn } from './messagePredicates.js'
-import { isEnvTruthy, getClaudeConfigHomeDir } from './envUtils.js'
-import { feature } from 'bun:bundle'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const BRIEF_TOOL_NAME: string | null =
   feature('KAIROS') || feature('KAIROS_BRIEF')
@@ -207,48 +199,52 @@ const sessionTranscriptModule = feature('KAIROS')
   ? (require('../services/sessionTranscript/sessionTranscript.js') as typeof import('../services/sessionTranscript/sessionTranscript.js'))
   : null
 /* eslint-enable @typescript-eslint/no-require-imports */
+import { PDF_AT_MENTION_INLINE_THRESHOLD } from '../constants/apiLimits.js'
+import { getLocalISODate } from '../constants/common.js'
+import { findRelevantMemories } from '../memdir/findRelevantMemories.js'
+import { memoryAge, memoryFreshnessText } from '../memdir/memoryAge.js'
+import { getAutoMemPath, isAutoMemoryEnabled } from '../memdir/paths.js'
+import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
+import {
+  getEffectiveContextWindowSize,
+  isAutoCompactEnabled,
+} from '../services/compact/autoCompact.js'
+import {
+  getSessionMemoryAttachment,
+  resetSessionMemoryInjection,
+} from '../services/SessionMemory/sessionMemoryAttachment.js'
+import { getAgentMemoryDir } from '../tools/AgentTool/agentMemory.js'
+import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
+import {
+  executeInstructionsLoadedHooks,
+  hasInstructionsLoadedHook,
+  type HookBlockingError,
+  type InstructionsMemoryType,
+} from './hooks.js'
+import { getPDFPageCount } from './pdf.js'
+import { isPDFExtension } from './pdfUtils.js'
+import { jsonStringify } from './slowOperations.js'
+import { removeTeammateFromTeamFile } from './swarm/teamHelpers.js'
+import { unassignTeammateTasks } from './tasks.js'
+import {
+  getAgentId,
+  getAgentName,
+  getTeamName,
+  isTeamLead,
+} from './teammate.js'
+import { isInProcessTeammate } from './teammateContext.js'
+import {
+  isIdleNotification,
+  isShutdownApproved,
+  isStructuredProtocolMessage,
+  markMessagesAsReadByPredicate,
+  readUnreadMessages,
+} from './teammateMailbox.js'
 import { hasUltrathinkKeyword, isUltrathinkEnabled } from './thinking.js'
 import {
   tokenCountFromLastAPIResponse,
   tokenCountWithEstimation,
 } from './tokens.js'
-import {
-  getEffectiveContextWindowSize,
-  isAutoCompactEnabled,
-} from '../services/compact/autoCompact.js'
-import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
-import {
-  hasInstructionsLoadedHook,
-  executeInstructionsLoadedHooks,
-  type HookBlockingError,
-  type InstructionsMemoryType,
-} from './hooks.js'
-import { jsonStringify } from './slowOperations.js'
-import { isPDFExtension } from './pdfUtils.js'
-import { getLocalISODate } from '../constants/common.js'
-import { getPDFPageCount } from './pdf.js'
-import { PDF_AT_MENTION_INLINE_THRESHOLD } from '../constants/apiLimits.js'
-import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
-import { findRelevantMemories } from '../memdir/findRelevantMemories.js'
-import { memoryAge, memoryFreshnessText } from '../memdir/memoryAge.js'
-import { getAutoMemPath, isAutoMemoryEnabled } from '../memdir/paths.js'
-import { getAgentMemoryDir } from '../tools/AgentTool/agentMemory.js'
-import {
-  readUnreadMessages,
-  markMessagesAsReadByPredicate,
-  isShutdownApproved,
-  isStructuredProtocolMessage,
-  isIdleNotification,
-} from './teammateMailbox.js'
-import {
-  getAgentName,
-  getAgentId,
-  getTeamName,
-  isTeamLead,
-} from './teammate.js'
-import { isInProcessTeammate } from './teammateContext.js'
-import { removeTeammateFromTeamFile } from './swarm/teamHelpers.js'
-import { unassignTeammateTasks } from './tasks.js'
 
 export const TODO_REMINDER_CONFIG = {
   TURNS_SINCE_WRITE: 10,
@@ -969,6 +965,9 @@ export async function getAttachments(
         ),
         maybe('verify_plan_reminder', async () =>
           getVerifyPlanReminderAttachment(messages, toolUseContext),
+        ),
+        maybe('session_memory', async () =>
+          getSessionMemoryAttachment(),
         ),
       ]
     : []
@@ -3865,6 +3864,14 @@ function getMaxBudgetUsdAttachment(maxBudgetUsd?: number): Attachment[] {
       remaining: remainingBudget,
     },
   ]
+}
+
+// ---------------------------------------------------------------------------
+// Session Memory Attachment (delegated to SessionMemory service)
+// ---------------------------------------------------------------------------
+
+export function resetSessionMemoryInjectionFlag(): void {
+  resetSessionMemoryInjection()
 }
 
 /**

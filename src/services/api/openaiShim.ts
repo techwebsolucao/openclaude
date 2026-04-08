@@ -525,6 +525,11 @@ function convertChunkUsage(
     output_tokens: usage.completion_tokens ?? 0,
     cache_creation_input_tokens: 0,
     cache_read_input_tokens: usage.prompt_tokens_details?.cached_tokens ?? 0,
+    // Pass through OpenRouter's real cost (USD) so cost-tracker can use it
+    // instead of calculating with default Anthropic pricing.
+    ...((usage as Record<string, unknown>).cost != null
+      ? { _provider_cost_usd: (usage as Record<string, unknown>).cost as number }
+      : {}),
   }
 }
 
@@ -880,7 +885,6 @@ async function* openaiStreamToAnthropic(
       if (
         !hasEmittedFinalUsage &&
         chunkUsage &&
-        (chunk.choices?.length ?? 0) === 0 &&
         lastStopReason !== null
       ) {
         yield {

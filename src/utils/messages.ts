@@ -1,24 +1,23 @@
-import { feature } from 'bun:bundle'
-import { getAPIProvider } from './model/providers.js'
 import type { BetaUsage as Usage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type {
-  ContentBlock,
-  ContentBlockParam,
-  RedactedThinkingBlock,
-  RedactedThinkingBlockParam,
-  TextBlockParam,
-  ThinkingBlock,
-  ThinkingBlockParam,
-  ToolResultBlockParam,
-  ToolUseBlock,
-  ToolUseBlockParam,
+    ContentBlock,
+    ContentBlockParam,
+    RedactedThinkingBlock,
+    RedactedThinkingBlockParam,
+    TextBlockParam,
+    ThinkingBlock,
+    ThinkingBlockParam,
+    ToolResultBlockParam,
+    ToolUseBlock,
+    ToolUseBlockParam,
 } from '@anthropic-ai/sdk/resources/index.mjs'
+import { feature } from 'bun:bundle'
 import { randomUUID, type UUID } from 'crypto'
 import isObject from 'lodash-es/isObject.js'
 import last from 'lodash-es/last.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from 'src/services/analytics/index.js'
 import { sanitizeToolNameForAnalytics } from 'src/services/analytics/metadata.js'
 import type { AgentId } from 'src/types/ids.js'
@@ -26,62 +25,63 @@ import { NO_CONTENT_MESSAGE } from '../constants/messages.js'
 import { OUTPUT_STYLE_CONFIG } from '../constants/outputStyles.js'
 import { isAutoMemoryEnabled } from '../memdir/paths.js'
 import {
-  checkStatsigFeatureGate_CACHED_MAY_BE_STALE,
-  getFeatureValue_CACHED_MAY_BE_STALE,
+    checkStatsigFeatureGate_CACHED_MAY_BE_STALE,
+    getFeatureValue_CACHED_MAY_BE_STALE,
 } from '../services/analytics/growthbook.js'
 import {
-  getImageTooLargeErrorMessage,
-  getPdfInvalidErrorMessage,
-  getPdfPasswordProtectedErrorMessage,
-  getPdfTooLargeErrorMessage,
-  getRequestTooLargeErrorMessage,
+    getImageTooLargeErrorMessage,
+    getPdfInvalidErrorMessage,
+    getPdfPasswordProtectedErrorMessage,
+    getPdfTooLargeErrorMessage,
+    getRequestTooLargeErrorMessage,
 } from '../services/api/errors.js'
 import type { AnyObject, Progress } from '../Tool.js'
 import { isConnectorTextBlock } from '../types/connectorText.js'
 import type {
-  AssistantMessage,
-  AttachmentMessage,
-  Message,
-  MessageOrigin,
-  NormalizedAssistantMessage,
-  NormalizedMessage,
-  NormalizedUserMessage,
-  PartialCompactDirection,
-  ProgressMessage,
-  RequestStartEvent,
-  StopHookInfo,
-  StreamEvent,
-  SystemAgentsKilledMessage,
-  SystemAPIErrorMessage,
-  SystemApiMetricsMessage,
-  SystemAwaySummaryMessage,
-  SystemBridgeStatusMessage,
-  SystemCompactBoundaryMessage,
-  SystemInformationalMessage,
-  SystemLocalCommandMessage,
-  SystemMemorySavedMessage,
-  SystemMessage,
-  SystemMessageLevel,
-  SystemMicrocompactBoundaryMessage,
-  SystemPermissionRetryMessage,
-  SystemScheduledTaskFireMessage,
-  SystemStopHookSummaryMessage,
-  SystemTurnDurationMessage,
-  TombstoneMessage,
-  ToolUseSummaryMessage,
-  UserMessage,
+    AssistantMessage,
+    AttachmentMessage,
+    Message,
+    MessageOrigin,
+    NormalizedAssistantMessage,
+    NormalizedMessage,
+    NormalizedUserMessage,
+    PartialCompactDirection,
+    ProgressMessage,
+    RequestStartEvent,
+    StopHookInfo,
+    StreamEvent,
+    SystemAgentsKilledMessage,
+    SystemAPIErrorMessage,
+    SystemApiMetricsMessage,
+    SystemAwaySummaryMessage,
+    SystemBridgeStatusMessage,
+    SystemCompactBoundaryMessage,
+    SystemInformationalMessage,
+    SystemLocalCommandMessage,
+    SystemMemorySavedMessage,
+    SystemMessage,
+    SystemMessageLevel,
+    SystemMicrocompactBoundaryMessage,
+    SystemPermissionRetryMessage,
+    SystemScheduledTaskFireMessage,
+    SystemStopHookSummaryMessage,
+    SystemTurnDurationMessage,
+    TombstoneMessage,
+    ToolUseSummaryMessage,
+    UserMessage,
 } from '../types/message.js'
 import { isAdvisorBlock } from './advisor.js'
 import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
 import { count } from './array.js'
 import {
-  type Attachment,
-  type HookAttachment,
-  type HookPermissionDecisionAttachment,
-  memoryHeader,
+    type Attachment,
+    type HookAttachment,
+    type HookPermissionDecisionAttachment,
+    memoryHeader,
 } from './attachments.js'
 import { quote } from './bash/shellQuote.js'
 import { formatNumber, formatTokens } from './format.js'
+import { getAPIProvider } from './model/providers.js'
 import { getPewterLedgerVariant } from './planModeV2.js'
 import { jsonStringify } from './slowOperations.js'
 
@@ -93,15 +93,15 @@ type HookAttachmentWithName = Exclude<
 
 import type { APIError } from '@anthropic-ai/sdk'
 import type {
-  BetaContentBlock,
-  BetaMessage,
-  BetaRedactedThinkingBlock,
-  BetaThinkingBlock,
-  BetaToolUseBlock,
+    BetaContentBlock,
+    BetaMessage,
+    BetaRedactedThinkingBlock,
+    BetaThinkingBlock,
+    BetaToolUseBlock,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type {
-  HookEvent,
-  SDKAssistantMessageError,
+    HookEvent,
+    SDKAssistantMessageError,
 } from 'src/entrypoints/agentSdkTypes.js'
 import { EXPLORE_AGENT } from 'src/tools/AgentTool/built-in/exploreAgent.js'
 import { PLAN_AGENT } from 'src/tools/AgentTool/built-in/planAgent.js'
@@ -112,8 +112,8 @@ import { BashTool } from 'src/tools/BashTool/BashTool.js'
 import { ExitPlanModeV2Tool } from 'src/tools/ExitPlanModeTool/ExitPlanModeV2Tool.js'
 import { FileEditTool } from 'src/tools/FileEditTool/FileEditTool.js'
 import {
-  FILE_READ_TOOL_NAME,
-  MAX_LINES_TO_READ,
+    FILE_READ_TOOL_NAME,
+    MAX_LINES_TO_READ,
 } from 'src/tools/FileReadTool/prompt.js'
 import { FileWriteTool } from 'src/tools/FileWriteTool/FileWriteTool.js'
 import { GLOB_TOOL_NAME } from 'src/tools/GlobTool/prompt.js'
@@ -122,22 +122,22 @@ import type { DeepImmutable } from 'src/types/utils.js'
 import { getStrictToolResultPairing } from '../bootstrap/state.js'
 import type { SpinnerMode } from '../components/Spinner.js'
 import {
-  COMMAND_ARGS_TAG,
-  COMMAND_MESSAGE_TAG,
-  COMMAND_NAME_TAG,
-  LOCAL_COMMAND_CAVEAT_TAG,
-  LOCAL_COMMAND_STDOUT_TAG,
+    COMMAND_ARGS_TAG,
+    COMMAND_MESSAGE_TAG,
+    COMMAND_NAME_TAG,
+    LOCAL_COMMAND_CAVEAT_TAG,
+    LOCAL_COMMAND_STDOUT_TAG,
 } from '../constants/xml.js'
 import { DiagnosticTrackingService } from '../services/diagnosticTracking.js'
 import {
-  findToolByName,
-  type Tool,
-  type Tools,
-  toolMatchesName,
+    findToolByName,
+    type Tool,
+    toolMatchesName,
+    type Tools,
 } from '../Tool.js'
 import {
-  FileReadTool,
-  type Output as FileReadToolOutput,
+    FileReadTool,
+    type Output as FileReadToolOutput,
 } from '../tools/FileReadTool/FileReadTool.js'
 import { SEND_MESSAGE_TOOL_NAME } from '../tools/SendMessageTool/constants.js'
 import { TASK_CREATE_TOOL_NAME } from '../tools/TaskCreateTool/constants.js'
@@ -155,9 +155,9 @@ import { safeParseJSON } from './json.js'
 import { logError, logMCPDebug } from './log.js'
 import { normalizeLegacyToolName } from './permissions/permissionRuleParser.js'
 import {
-  getPlanModeV2AgentCount,
-  getPlanModeV2ExploreAgentCount,
-  isPlanModeInterviewPhaseEnabled,
+    getPlanModeV2AgentCount,
+    getPlanModeV2ExploreAgentCount,
+    isPlanModeInterviewPhaseEnabled,
 } from './planModeV2.js'
 import { escapeRegExp } from './stringUtils.js'
 import { isTodoV2Enabled } from './tasks.js'
@@ -169,8 +169,8 @@ function getTeammateMailbox(): typeof import('./teammateMailbox.js') {
 }
 
 import {
-  isToolReferenceBlock,
-  isToolSearchEnabledOptimistic,
+    isToolReferenceBlock,
+    isToolSearchEnabledOptimistic,
 } from './toolSearch.js'
 
 const MEMORY_CORRECTION_HINT =
@@ -4255,6 +4255,22 @@ You have exited auto mode. The user may now want to interact more directly. You 
     case 'structured_output':
     case 'hook_permission_decision':
       return []
+    case 'current_session_memory': {
+      if (!attachment.content || attachment.content.trim().length === 0) {
+        return []
+      }
+      return wrapMessagesInSystemReminder([
+        createUserMessage({
+          content:
+            `<session-memory path="${attachment.path}">\n` +
+            `${attachment.content}\n` +
+            `</session-memory>\n\n` +
+            `The above is the session memory from your previous conversation. ` +
+            `Use it to maintain context continuity. Do NOT mention it to the user.`,
+          isMeta: true,
+        }),
+      ])
+    }
   }
 
   // Handle legacy attachments that were removed

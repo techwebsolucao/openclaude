@@ -133,6 +133,7 @@ import { hasConsoleBillingAccess } from '../utils/billing.js';
 import { logEvent, type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from 'src/services/analytics/index.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
 import { textForResubmit, handleMessageFromStream, type StreamingToolUse, type StreamingThinking, isCompactBoundaryMessage, getMessagesAfterCompactBoundary, getContentText, createUserMessage, createAssistantMessage, createTurnDurationMessage, createAgentsKilledMessage, createApiMetricsMessage, createSystemMessage, createCommandInputMessage, formatCommandInputTags } from '../utils/messages.js';
+import { buildContextStatus, createContextStatusMessage, formatContextStatusLine } from '../services/ContextStatus/index.js';
 import { generateSessionTitle } from '../utils/sessionTitle.js';
 import { BASH_INPUT_TAG, COMMAND_MESSAGE_TAG, COMMAND_NAME_TAG, LOCAL_COMMAND_STDOUT_TAG } from '../constants/xml.js';
 import { escapeXml } from '../utils/xml.js';
@@ -1597,13 +1598,20 @@ export function REPL({
       const deferredBudget = swarmBudgetInfoRef.current;
       swarmStartTimeRef.current = null;
       swarmBudgetInfoRef.current = undefined;
-      setMessages(prev => [...prev, createTurnDurationMessage(totalMs, deferredBudget,
-        // Count only what recordTranscript will persist — ephemeral
-        // progress ticks and non-ant attachments are filtered by
-        // isLoggableMessage and never reach disk. Using raw prev.length
-        // would make checkResumeConsistency report false delta<0 for
-        // every turn that ran a progress-emitting tool.
-        count(prev, isLoggableMessage))]);
+      setMessages(prev => {
+        const updated = [...prev, createTurnDurationMessage(totalMs, deferredBudget,
+          // Count only what recordTranscript will persist — ephemeral
+          // progress ticks and non-ant attachments are filtered by
+          // isLoggableMessage and never reach disk. Using raw prev.length
+          // would make checkResumeConsistency report false delta<0 for
+          // every turn that ran a progress-emitting tool.
+          count(prev, isLoggableMessage))];
+        const ctxStatus = buildContextStatus(updated, mainLoopModel as any);
+        if (ctxStatus) {
+          updated.push(createContextStatusMessage(formatContextStatusLine(ctxStatus)));
+        }
+        return updated;
+      });
     }
   }, [hasRunningTeammates, setMessages]);
 
@@ -2968,7 +2976,8 @@ export function REPL({
         // Skip if user aborted or if in loop mode (too noisy between ticks)
         // Defer if swarm teammates are still running (show when they finish)
         const turnDurationMs = Date.now() - loadingStartTimeRef.current - totalPausedMsRef.current;
-        if ((turnDurationMs > 30000 || budgetInfo !== undefined) && !abortController.signal.aborted && !proactiveActive) {
+        const showDuration = (turnDurationMs > 30000 || budgetInfo !== undefined) && !abortController.signal.aborted && !proactiveActive;
+        if (showDuration) {
           const hasRunningSwarmAgents = getAllInProcessTeammateTasks(store.getState().tasks).some(t => t.status === 'running');
           if (hasRunningSwarmAgents) {
             // Only record start time on the first deferred turn
@@ -2980,8 +2989,24 @@ export function REPL({
               swarmBudgetInfoRef.current = budgetInfo;
             }
           } else {
-            setMessages(prev => [...prev, createTurnDurationMessage(turnDurationMs, budgetInfo, count(prev, isLoggableMessage))]);
+            setMessages(prev => {
+              const updated = [...prev, createTurnDurationMessage(turnDurationMs, budgetInfo, count(prev, isLoggableMessage))];
+              const ctxStatus = buildContextStatus(updated, mainLoopModelParam as any);
+              if (ctxStatus) {
+                updated.push(createContextStatusMessage(formatContextStatusLine(ctxStatus)));
+              }
+              return updated;
+            });
           }
+        } else if (!abortController.signal.aborted && !proactiveActive) {
+          // Show context status even on short turns (Gemini CLI-style)
+          setMessages(prev => {
+            const ctxStatus = buildContextStatus(prev, mainLoopModelParam as any);
+            if (ctxStatus) {
+              return [...prev, createContextStatusMessage(formatContextStatusLine(ctxStatus))];
+            }
+            return prev;
+          });
         }
         // Clear the controller so CancelRequestHandler's canCancelRunningTask
         // reads false at the idle prompt. Without this, the stale non-aborted

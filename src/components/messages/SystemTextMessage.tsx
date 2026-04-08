@@ -34,7 +34,7 @@ type Props = {
   isTranscriptMode?: boolean;
 };
 export function SystemTextMessage(t0) {
-  const $ = _c(51);
+  const $ = _c(57);
   const {
     message,
     addMargin,
@@ -196,6 +196,28 @@ export function SystemTextMessage(t0) {
       t6 = $[36];
     }
     return t6;
+  }
+  if (message.subtype === "context_status") {
+    const t1 = addMargin ? 1 : 0;
+    let t2;
+    if ($[51] !== message.content) {
+      t2 = <Text dimColor={true}>{TEARDROP_ASTERISK} {message.content}</Text>;
+      $[51] = message.content;
+      $[52] = t2;
+    } else {
+      t2 = $[52];
+    }
+    let t3;
+    if ($[53] !== bg || $[54] !== t1 || $[55] !== t2) {
+      t3 = <Box flexDirection="row" marginTop={t1} backgroundColor={bg} width="100%">{t2}</Box>;
+      $[53] = bg;
+      $[54] = t1;
+      $[55] = t2;
+      $[56] = t3;
+    } else {
+      t3 = $[56];
+    }
+    return t3;
   }
   const isStopHookSummary = message.subtype === "stop_hook_summary";
   if (!isStopHookSummary && !verbose && message.level === "info") {

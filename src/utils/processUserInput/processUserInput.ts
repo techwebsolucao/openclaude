@@ -55,12 +55,6 @@ import {
 import { queryCheckpoint } from '../queryProfiler.js'
 import { parseSlashCommand } from '../slashCommandParsing.js'
 import {
-  detectTopicShift,
-  getLastTopicShiftInput,
-  isTopicShiftDetectionEnabled,
-  setLastTopicShiftInput,
-} from '../topicShiftDetector.js'
-import {
   hasUltraplanKeyword,
   replaceUltraplanKeyword,
 } from '../ultraplan/keyword.js'
@@ -269,33 +263,6 @@ export async function processUserInput({
     }
   }
   queryCheckpoint('query_hooks_end')
-
-  if (isTopicShiftDetectionEnabled() && result.shouldQuery && !isMeta) {
-    const newText = getContentText(input) || ''
-    const lastShiftInput = getLastTopicShiftInput()
-
-    if (lastShiftInput && newText === lastShiftInput) {
-      setLastTopicShiftInput(null)
-    } else if (messages && messages.length > 0 && newText.length > 0) {
-      const shiftResult = detectTopicShift(newText, messages)
-      if (shiftResult.isTopicShift) {
-        setLastTopicShiftInput(newText)
-        return {
-          messages: [
-            createSystemMessage(
-              `🔄 Topic shift detected (similarity: ${Math.round(shiftResult.similarity * 100)}%).\n` +
-              `Recent conversation was about: ${shiftResult.recentTopicSummary}\n\n` +
-              `Your new message appears to be a completely different topic.\n` +
-              `• Type /clear to start fresh with a clean context (recommended)\n` +
-              `• Re-send your message to continue with the current context`,
-              'warning',
-            ),
-          ],
-          shouldQuery: false,
-        }
-      }
-    }
-  }
 
   // Happy path: onQuery will clear userInputOnProcessing via startTransition
   // so it resolves in the same frame as deferredMessages (no flicker gap).
