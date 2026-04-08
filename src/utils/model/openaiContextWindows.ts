@@ -71,6 +71,7 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
   'codellama:13b':              16_384,
   'llama3.2:1b':              128_000,
   'qwen3:8b':                 128_000,
+  'qwen3.5-397b-a17b':        262_144,
   'codestral':                 32_768,
 }
 
