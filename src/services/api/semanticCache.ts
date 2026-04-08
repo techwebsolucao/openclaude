@@ -37,7 +37,7 @@ const paths = envPaths('claude-cli')
 const CACHE_DIR_NAME = 'semantic-cache'
 
 const DEFAULT_SIMILARITY_THRESHOLD = 0.92
-const DEFAULT_LOCAL_SIMILARITY_THRESHOLD = 0.85
+const DEFAULT_LOCAL_SIMILARITY_THRESHOLD = 0.95
 const DEFAULT_MAX_ENTRIES = 200
 const DEFAULT_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
