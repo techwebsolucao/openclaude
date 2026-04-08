@@ -101,31 +101,29 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
 
 ### Cache semântico de respostas
 
-Respostas puramente textuais (sem tool calls) são cachadas em disco com embedding local. Quando uma pergunta similar é feita novamente, o cache retorna a resposta anterior — **zero tokens gastos, latência <1ms**.
+Respostas puramente textuais (sem tool calls) são cachadas em disco via embeddings neurais. Quando uma pergunta similar é feita novamente, o cache retorna a resposta anterior — **zero tokens gastos**.
 
 Funciona em duas camadas:
 
 | Camada | Tipo | Quando ativa |
 |--------|------|--------------|
 | Layer 1 | Exact-match (in-memory, SHA-256) | Token economy mode ligado |
-| Layer 2 | Similaridade semântica (persistente em disco) | Sempre ativa por padrão |
+| Layer 2 | Similaridade semântica (persistente em disco) | **Requer Ollama** |
 
-**Modo local (sem Ollama):** usa n-gram hashing (256 dimensões, FNV-1a) — sem dependências externas, roda 100% na CPU. Reconhece reformulações da mesma pergunta por sobreposição de palavras (threshold: 0.85).
-
-**Modo Ollama (upgrade):** se o Ollama estiver instalado com o modelo `nomic-embed-text`, o cache sobe automaticamente para embeddings neurais (768 dimensões, threshold: 0.92) que entendem sinônimos e significado real.
+**Layer 2 requer Ollama** com o modelo `nomic-embed-text` (768 dimensões, threshold: 0.92). Entende sinônimos, paráfrases e reformulações da mesma pergunta. Sem Ollama, o Layer 2 fica inativo — nenhuma interferência.
 
 ```bash
-# Status do cache
-/semantic-cache
+# Ativar (instalar Ollama + modelo)
+brew install ollama
+ollama serve                     # em outro terminal
+ollama pull nomic-embed-text     # ~274MB, uma vez só
 
-# Limpar cache
-/semantic-cache clear
+# O openclaude detecta automaticamente na próxima sessão
+/semantic-cache          # ver status
+/semantic-cache clear    # limpar cache
 
-# Configurar threshold
-/config set semanticCacheConfig.localSimilarityThreshold 0.80
-
-# Upgrade para Ollama (opcional)
-ollama pull nomic-embed-text
+# Configurar threshold (padrão: 0.92)
+/config set semanticCacheConfig.similarityThreshold 0.90
 ```
 
 Cache salvo em `~/.openclaude/cache/semantic-cache/` — sobrevive entre sessões, max 200 entradas, TTL de 7 dias.
