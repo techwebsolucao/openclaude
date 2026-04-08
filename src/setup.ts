@@ -3,20 +3,20 @@
 import { feature } from 'bun:bundle'
 import chalk from 'chalk'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from 'src/services/analytics/index.js'
 import { getCwd } from 'src/utils/cwd.js'
 import { checkForReleaseNotes } from 'src/utils/releaseNotes.js'
 import { setCwd } from 'src/utils/Shell.js'
 import { initSinks } from 'src/utils/sinks.js'
 import {
-  getIsNonInteractiveSession,
-  getProjectRoot,
-  getSessionId,
-  setOriginalCwd,
-  setProjectRoot,
-  switchSession,
+    getIsNonInteractiveSession,
+    getProjectRoot,
+    getSessionId,
+    setOriginalCwd,
+    setProjectRoot,
+    switchSession,
 } from './bootstrap/state.js'
 import { getCommands } from './commands.js'
 import { initSessionMemory } from './services/SessionMemory/sessionMemory.js'
@@ -27,17 +27,15 @@ import { prefetchApiKeyFromApiKeyHelperIfSafe } from './utils/auth.js'
 import { clearMemoryFileCaches } from './utils/claudemd.js'
 import { getCurrentProjectConfig, getGlobalConfig } from './utils/config.js'
 import { logForDiagnosticsNoPII } from './utils/diagLogs.js'
-import { env } from './utils/env.js'
-import { envDynamic } from './utils/envDynamic.js'
 import { isBareMode, isEnvTruthy } from './utils/envUtils.js'
 import { errorMessage } from './utils/errors.js'
 import { findCanonicalGitRoot, findGitRoot, getIsGit } from './utils/git.js'
+import { hasWorktreeCreateHook } from './utils/hooks.js'
 import { initializeFileChangedWatcher } from './utils/hooks/fileChangedWatcher.js'
 import {
-  captureHooksConfigSnapshot,
-  updateHooksConfigSnapshot,
+    captureHooksConfigSnapshot,
+    updateHooksConfigSnapshot,
 } from './utils/hooks/hooksConfigSnapshot.js'
-import { hasWorktreeCreateHook } from './utils/hooks.js'
 import { checkAndRestoreITerm2Backup } from './utils/iTermBackup.js'
 import { logError } from './utils/log.js'
 import { getRecentActivity } from './utils/logoV2Utils.js'
@@ -47,10 +45,10 @@ import { getPlanSlug } from './utils/plans.js'
 import { saveWorktreeState } from './utils/sessionStorage.js'
 import { profileCheckpoint } from './utils/startupProfiler.js'
 import {
-  createTmuxSessionForWorktree,
-  createWorktreeForSession,
-  generateTmuxSessionName,
-  worktreeBranchName,
+    createTmuxSessionForWorktree,
+    createWorktreeForSession,
+    generateTmuxSessionName,
+    worktreeBranchName,
 } from './utils/worktree.js'
 
 export async function setup(
@@ -302,6 +300,26 @@ export async function setup(
   }
   void lockCurrentVersion() // Lock current version to prevent deletion by other processes
   logForDiagnosticsNoPII('info', 'setup_background_jobs_launched')
+
+  // Semantic cache: configure from user settings and auto-pull embedding model
+  void import('./services/api/semanticCache.js').then(async (sc) => {
+    const scConfig = getGlobalConfig().semanticCacheConfig ?? {}
+    sc.configureSemanticCache({
+      enabled: scConfig.enabled ?? true,
+      similarityThreshold: scConfig.similarityThreshold,
+      localSimilarityThreshold: scConfig.localSimilarityThreshold,
+      maxEntries: scConfig.maxEntries,
+      entryTtlMs: scConfig.entryTtlMs,
+    })
+    // Try to auto-pull Ollama embedding model (non-blocking, best-effort)
+    if (scConfig.enabled !== false && scConfig.autoPullModel !== false) {
+      const { setEmbeddingModel, ensureEmbeddingModel } = await import('./services/api/ollamaEmbedding.js')
+      if (scConfig.embeddingModel) {
+        setEmbeddingModel(scConfig.embeddingModel)
+      }
+      void ensureEmbeddingModel() // Fire-and-forget: falls back to local embedding if Ollama unavailable
+    }
+  })
 
   profileCheckpoint('setup_before_prefetch')
   // Pre-fetch promises - only items needed before render

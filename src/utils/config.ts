@@ -254,6 +254,16 @@ export type GlobalConfig = {
     compactMaxOutputTokens?: number  // default 8000. Max output for compact summaries.
     skipMemoryInstructions?: boolean // default false. Skip memory taxonomy instructions to save ~1.5k tokens.
   }
+  /** Semantic cache: persistent, embedding-based response cache (local fallback + Ollama) */
+  semanticCacheConfig?: {
+    enabled?: boolean              // default true. Enable/disable semantic cache.
+    similarityThreshold?: number   // default 0.92. Cosine similarity threshold (Ollama neural embeddings).
+    localSimilarityThreshold?: number // default 0.85. Cosine similarity threshold (local n-gram fallback).
+    maxEntries?: number            // default 200. Max cached entries on disk.
+    entryTtlMs?: number            // default 604800000 (7 days). TTL for cache entries.
+    embeddingModel?: string        // default 'nomic-embed-text'. Ollama model for embeddings.
+    autoPullModel?: boolean        // default true. Auto-pull Ollama embedding model if missing.
+  }
   showTurnDuration: boolean // Controls whether to show turn duration message (e.g., "Cooked for 1m 6s")
   /**
    * @deprecated Use settings.env instead.

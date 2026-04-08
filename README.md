@@ -99,6 +99,37 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
 
 > **Nota:** Valores de `api_key` em `settings.json` são armazenados em texto plano. Mantenha este arquivo privado.
 
+### Cache semântico de respostas
+
+Respostas puramente textuais (sem tool calls) são cachadas em disco com embedding local. Quando uma pergunta similar é feita novamente, o cache retorna a resposta anterior — **zero tokens gastos, latência <1ms**.
+
+Funciona em duas camadas:
+
+| Camada | Tipo | Quando ativa |
+|--------|------|--------------|
+| Layer 1 | Exact-match (in-memory, SHA-256) | Token economy mode ligado |
+| Layer 2 | Similaridade semântica (persistente em disco) | Sempre ativa por padrão |
+
+**Modo local (sem Ollama):** usa n-gram hashing (256 dimensões, FNV-1a) — sem dependências externas, roda 100% na CPU. Reconhece reformulações da mesma pergunta por sobreposição de palavras (threshold: 0.85).
+
+**Modo Ollama (upgrade):** se o Ollama estiver instalado com o modelo `nomic-embed-text`, o cache sobe automaticamente para embeddings neurais (768 dimensões, threshold: 0.92) que entendem sinônimos e significado real.
+
+```bash
+# Status do cache
+/semantic-cache
+
+# Limpar cache
+/semantic-cache clear
+
+# Configurar threshold
+/config set semanticCacheConfig.localSimilarityThreshold 0.80
+
+# Upgrade para Ollama (opcional)
+ollama pull nomic-embed-text
+```
+
+Cache salvo em `~/.openclaude/cache/semantic-cache/` — sobrevive entre sessões, max 200 entradas, TTL de 7 dias.
+
 ### Busca e acesso web
 
 - `WebSearch` usa DuckDuckGo como fallback por padrão

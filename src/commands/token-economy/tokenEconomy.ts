@@ -1,4 +1,5 @@
 import { getResponseCacheStats } from '../../services/api/responseCache.js'
+import { getSemanticCacheStats } from '../../services/api/semanticCache.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js'
 import {
     ECONOMY_AUTOCOMPACT_BUFFER_TOKENS,
@@ -58,6 +59,8 @@ export const call: import('../../types/command.js').LocalJSXCommandCall =
         statusMsg += `\n  • Token estimation padding: ${fmt(Math.round(tep * 100 - 100), Math.round(ECONOMY_TOKEN_ESTIMATION_PADDING * 100 - 100), '%')} (vs 33% normal)`
         const cacheStats = getResponseCacheStats()
         statusMsg += `\n\n  Response Cache: ${cacheStats.size} entries, ${cacheStats.totalHits} hits`
+        const scStats = getSemanticCacheStats()
+        statusMsg += `\n  Semantic Cache: ${scStats.entries}/${scStats.maxEntries} entries, ${scStats.totalHits} hits`
         statusMsg += `\n\n  Customize via: /config set tokenEconomyConfig.contextWindowFraction 0.6`
       }
       onDone(statusMsg)

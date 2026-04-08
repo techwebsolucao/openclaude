@@ -36,6 +36,7 @@ import pr_comments from './commands/pr_comments/index.js'
 import rename from './commands/rename/index.js'
 import resume from './commands/resume/index.js'
 import review, { ultrareview } from './commands/review.js'
+import semanticCacheCommand from './commands/semantic-cache/index.js'
 import session from './commands/session/index.js'
 import share from './commands/share/index.js'
 import skills from './commands/skills/index.js'
@@ -333,6 +334,7 @@ const COMMANDS = memoize((): Command[] => [
   ...(peersCmd ? [peersCmd] : []),
   tasks,
   tokenEconomy,
+  semanticCacheCommand,
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(torch ? [torch] : []),
   ...(process.env.USER_TYPE === 'ant' && !process.env.IS_DEMO

@@ -1,71 +1,71 @@
 import type {
-  BetaContentBlock,
-  BetaContentBlockParam,
-  BetaImageBlockParam,
-  BetaJSONOutputFormat,
-  BetaMessage,
-  BetaMessageDeltaUsage,
-  BetaMessageStreamParams,
-  BetaOutputConfig,
-  BetaRawMessageStreamEvent,
-  BetaRequestDocumentBlock,
-  BetaStopReason,
-  BetaToolChoiceAuto,
-  BetaToolChoiceTool,
-  BetaToolResultBlockParam,
-  BetaToolUnion,
-  BetaUsage,
-  BetaMessageParam as MessageParam,
+    BetaContentBlock,
+    BetaContentBlockParam,
+    BetaImageBlockParam,
+    BetaJSONOutputFormat,
+    BetaMessage,
+    BetaMessageDeltaUsage,
+    BetaMessageStreamParams,
+    BetaOutputConfig,
+    BetaRawMessageStreamEvent,
+    BetaRequestDocumentBlock,
+    BetaStopReason,
+    BetaToolChoiceAuto,
+    BetaToolChoiceTool,
+    BetaToolResultBlockParam,
+    BetaToolUnion,
+    BetaUsage,
+    BetaMessageParam as MessageParam,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import type { Stream } from '@anthropic-ai/sdk/streaming.mjs'
 import { randomUUID } from 'crypto'
 import {
-  getAPIProvider,
-  isFirstPartyAnthropicBaseUrl,
+    getAPIProvider,
+    isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
 import {
-  getAttributionHeader,
-  getCLISyspromptPrefix,
+    getAttributionHeader,
+    getCLISyspromptPrefix,
 } from '../../constants/system.js'
 import {
-  getEmptyToolPermissionContext,
-  type QueryChainTracking,
-  type Tool,
-  toolMatchesName,
-  type ToolPermissionContext,
-  type Tools,
+    getEmptyToolPermissionContext,
+    type QueryChainTracking,
+    type Tool,
+    toolMatchesName,
+    type ToolPermissionContext,
+    type Tools,
 } from '../../Tool.js'
 import type { AgentDefinition } from '../../tools/AgentTool/loadAgentsDir.js'
 import {
-  type ConnectorTextBlock,
-  type ConnectorTextDelta,
-  isConnectorTextBlock,
+    type ConnectorTextBlock,
+    type ConnectorTextDelta,
+    isConnectorTextBlock,
 } from '../../types/connectorText.js'
 import type {
-  AssistantMessage,
-  Message,
-  StreamEvent,
-  SystemAPIErrorMessage,
-  UserMessage,
+    AssistantMessage,
+    Message,
+    StreamEvent,
+    SystemAPIErrorMessage,
+    UserMessage,
 } from '../../types/message.js'
 import {
-  type CacheScope,
-  logAPIPrefix,
-  splitSysPromptPrefix,
-  toolToAPISchema,
+    type CacheScope,
+    logAPIPrefix,
+    splitSysPromptPrefix,
+    toolToAPISchema,
 } from '../../utils/api.js'
 import { getOauthAccountInfo } from '../../utils/auth.js'
 import {
-  getBedrockExtraBodyParamsBetas,
-  getMergedBetas,
-  getModelBetas,
+    getBedrockExtraBodyParamsBetas,
+    getMergedBetas,
+    getModelBetas,
 } from '../../utils/betas.js'
 import { getOrCreateUserID } from '../../utils/config.js'
 import {
-  CAPPED_DEFAULT_MAX_TOKENS,
-  getModelMaxOutputTokens,
-  getSonnet1mExpTreatmentEnabled,
+    CAPPED_DEFAULT_MAX_TOKENS,
+    getModelMaxOutputTokens,
+    getSonnet1mExpTreatmentEnabled,
 } from '../../utils/context.js'
 import { resolveAppliedEffort } from '../../utils/effort.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
@@ -73,34 +73,38 @@ import { errorMessage } from '../../utils/errors.js'
 import { computeFingerprintFromMessages } from '../../utils/fingerprint.js'
 import { captureAPIRequest, logError } from '../../utils/log.js'
 import {
-  createAssistantAPIErrorMessage,
-  createUserMessage,
-  ensureToolResultPairing,
-  normalizeContentFromAPI,
-  normalizeMessagesForAPI,
-  stripAdvisorBlocks,
-  stripCallerFieldFromAssistantMessage,
-  stripToolReferenceBlocksFromUserMessage,
+    createAssistantAPIErrorMessage,
+    createUserMessage,
+    ensureToolResultPairing,
+    normalizeContentFromAPI,
+    normalizeMessagesForAPI,
+    stripAdvisorBlocks,
+    stripCallerFieldFromAssistantMessage,
+    stripToolReferenceBlocksFromUserMessage,
 } from '../../utils/messages.js'
 import {
-  getDefaultOpusModel,
-  getDefaultSonnetModel,
-  getSmallFastModel,
-  isNonCustomOpusModel,
+    getDefaultOpusModel,
+    getDefaultSonnetModel,
+    getSmallFastModel,
+    isNonCustomOpusModel,
 } from '../../utils/model/model.js'
 import {
-  asSystemPrompt,
-  type SystemPrompt,
+    asSystemPrompt,
+    type SystemPrompt,
 } from '../../utils/systemPromptType.js'
 import { tokenCountFromLastAPIResponse } from '../../utils/tokens.js'
 import { getDynamicConfig_BLOCKS_ON_INIT } from '../analytics/growthbook.js'
 import {
-  currentLimits,
-  extractQuotaStatusFromError,
-  extractQuotaStatusFromHeaders,
+    currentLimits,
+    extractQuotaStatusFromError,
+    extractQuotaStatusFromHeaders,
 } from '../claudeAiLimits.js'
 import { getAPIContextManagement } from '../compact/apiMicrocompact.js'
 import { cacheResponse, getCachedResponse } from './responseCache.js'
+import {
+    cacheSemanticResponse,
+    getSemanticCachedResponse,
+} from './semanticCache.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
@@ -109,38 +113,38 @@ const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER')
 
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import {
-  APIConnectionTimeoutError,
-  APIError,
-  APIUserAbortError,
+    APIConnectionTimeoutError,
+    APIError,
+    APIUserAbortError,
 } from '@anthropic-ai/sdk/error'
 import { feature } from 'bun:bundle'
 import {
-  getAfkModeHeaderLatched,
-  getCacheEditingHeaderLatched,
-  getFastModeHeaderLatched,
-  getLastApiCompletionTimestamp,
-  getPromptCache1hAllowlist,
-  getPromptCache1hEligible,
-  getSessionId,
-  getThinkingClearLatched,
-  setAfkModeHeaderLatched,
-  setCacheEditingHeaderLatched,
-  setFastModeHeaderLatched,
-  setLastMainRequestId,
-  setPromptCache1hAllowlist,
-  setPromptCache1hEligible,
-  setThinkingClearLatched,
+    getAfkModeHeaderLatched,
+    getCacheEditingHeaderLatched,
+    getFastModeHeaderLatched,
+    getLastApiCompletionTimestamp,
+    getPromptCache1hAllowlist,
+    getPromptCache1hEligible,
+    getSessionId,
+    getThinkingClearLatched,
+    setAfkModeHeaderLatched,
+    setCacheEditingHeaderLatched,
+    setFastModeHeaderLatched,
+    setLastMainRequestId,
+    setPromptCache1hAllowlist,
+    setPromptCache1hEligible,
+    setThinkingClearLatched,
 } from 'src/bootstrap/state.js'
 import {
-  AFK_MODE_BETA_HEADER,
-  CONTEXT_1M_BETA_HEADER,
-  CONTEXT_MANAGEMENT_BETA_HEADER,
-  EFFORT_BETA_HEADER,
-  FAST_MODE_BETA_HEADER,
-  PROMPT_CACHING_SCOPE_BETA_HEADER,
-  REDACT_THINKING_BETA_HEADER,
-  STRUCTURED_OUTPUTS_BETA_HEADER,
-  TASK_BUDGETS_BETA_HEADER,
+    AFK_MODE_BETA_HEADER,
+    CONTEXT_1M_BETA_HEADER,
+    CONTEXT_MANAGEMENT_BETA_HEADER,
+    EFFORT_BETA_HEADER,
+    FAST_MODE_BETA_HEADER,
+    PROMPT_CACHING_SCOPE_BETA_HEADER,
+    REDACT_THINKING_BETA_HEADER,
+    STRUCTURED_OUTPUTS_BETA_HEADER,
+    TASK_BUDGETS_BETA_HEADER,
 } from 'src/constants/betas.js'
 import type { QuerySource } from 'src/constants/querySource.js'
 import type { Notification } from 'src/context/notifications.js'
@@ -148,19 +152,19 @@ import { addToTotalSessionCost } from 'src/cost-tracker.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import type { AgentId } from 'src/types/ids.js'
 import {
-  ADVISOR_TOOL_INSTRUCTIONS,
-  getExperimentAdvisorModels,
-  isAdvisorEnabled,
-  isValidAdvisorModel,
-  modelSupportsAdvisor,
+    ADVISOR_TOOL_INSTRUCTIONS,
+    getExperimentAdvisorModels,
+    isAdvisorEnabled,
+    isValidAdvisorModel,
+    modelSupportsAdvisor,
 } from 'src/utils/advisor.js'
 import { getAgentContext } from 'src/utils/agentContext.js'
 import { isClaudeAISubscriber } from 'src/utils/auth.js'
 import {
-  getToolSearchBetaHeader,
-  modelSupportsStructuredOutputs,
-  shouldIncludeFirstPartyOnlyBetas,
-  shouldUseGlobalCacheScope,
+    getToolSearchBetaHeader,
+    modelSupportsStructuredOutputs,
+    shouldIncludeFirstPartyOnlyBetas,
+    shouldUseGlobalCacheScope,
 } from 'src/utils/betas.js'
 import { CLAUDE_IN_CHROME_MCP_SERVER_NAME } from 'src/utils/claudeInChrome/common.js'
 import { CHROME_TOOL_SEARCH_INSTRUCTIONS } from 'src/utils/claudeInChrome/prompt.js'
@@ -169,10 +173,10 @@ import { logForDebugging } from 'src/utils/debug.js'
 import { logForDiagnosticsNoPII } from 'src/utils/diagLogs.js'
 import { type EffortValue, modelSupportsEffort } from 'src/utils/effort.js'
 import {
-  isFastModeAvailable,
-  isFastModeCooldown,
-  isFastModeEnabled,
-  isFastModeSupportedByModel,
+    isFastModeAvailable,
+    isFastModeCooldown,
+    isFastModeEnabled,
+    isFastModeSupportedByModel,
 } from 'src/utils/fastMode.js'
 import { returnValue } from 'src/utils/generators.js'
 import { headlessProfilerCheckpoint } from 'src/utils/headlessProfiler.js'
@@ -180,21 +184,21 @@ import { isMcpInstructionsDeltaEnabled } from 'src/utils/mcpInstructionsDelta.js
 import { calculateUSDCost } from 'src/utils/modelCost.js'
 import { endQueryProfile, queryCheckpoint } from 'src/utils/queryProfiler.js'
 import {
-  modelSupportsAdaptiveThinking,
-  modelSupportsThinking,
-  type ThinkingConfig,
+    modelSupportsAdaptiveThinking,
+    modelSupportsThinking,
+    type ThinkingConfig,
 } from 'src/utils/thinking.js'
 import {
-  extractDiscoveredToolNames,
-  isDeferredToolsDeltaEnabled,
-  isToolSearchEnabled,
+    extractDiscoveredToolNames,
+    isDeferredToolsDeltaEnabled,
+    isToolSearchEnabled,
 } from 'src/utils/toolSearch.js'
 import { API_MAX_MEDIA_PER_REQUEST } from '../../constants/apiLimits.js'
 import { ADVISOR_BETA_HEADER } from '../../constants/betas.js'
 import {
-  formatDeferredToolLine,
-  isDeferredTool,
-  TOOL_SEARCH_TOOL_NAME,
+    formatDeferredToolLine,
+    isDeferredTool,
+    TOOL_SEARCH_TOOL_NAME,
 } from '../../tools/ToolSearchTool/prompt.js'
 import { count } from '../../utils/array.js'
 import { insertBlockAfterToolResults } from '../../utils/contentArray.js'
@@ -202,59 +206,59 @@ import { validateBoundedIntEnvVar } from '../../utils/envValidation.js'
 import { safeParseJSON } from '../../utils/json.js'
 import { getInferenceProfileBackingModel } from '../../utils/model/bedrock.js'
 import {
-  normalizeModelStringForAPI,
-  parseUserSpecifiedModel,
+    normalizeModelStringForAPI,
+    parseUserSpecifiedModel,
 } from '../../utils/model/model.js'
 import {
-  startSessionActivity,
-  stopSessionActivity,
+    startSessionActivity,
+    stopSessionActivity,
 } from '../../utils/sessionActivity.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 import {
-  isBetaTracingEnabled,
-  type LLMRequestNewContext,
-  startLLMRequestSpan,
+    isBetaTracingEnabled,
+    type LLMRequestNewContext,
+    startLLMRequestSpan,
 } from '../../utils/telemetry/sessionTracing.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../analytics/index.js'
 import {
-  consumePendingCacheEdits,
-  getPinnedCacheEdits,
-  markToolsSentToAPIState,
-  pinCacheEdits,
+    consumePendingCacheEdits,
+    getPinnedCacheEdits,
+    markToolsSentToAPIState,
+    pinCacheEdits,
 } from '../compact/microCompact.js'
 import { getInitializationStatus } from '../lsp/manager.js'
 import { isToolFromMcpServer } from '../mcp/utils.js'
 import { withStreamingVCR, withVCR } from '../vcr.js'
 import { CLIENT_REQUEST_ID_HEADER, getAnthropicClient } from './client.js'
 import {
-  API_ERROR_MESSAGE_PREFIX,
-  CUSTOM_OFF_SWITCH_MESSAGE,
-  getAssistantMessageFromError,
-  getErrorMessageIfRefusal,
+    API_ERROR_MESSAGE_PREFIX,
+    CUSTOM_OFF_SWITCH_MESSAGE,
+    getAssistantMessageFromError,
+    getErrorMessageIfRefusal,
 } from './errors.js'
 import {
-  EMPTY_USAGE,
-  type GlobalCacheStrategy,
-  logAPIError,
-  logAPIQuery,
-  logAPISuccessAndDuration,
-  type NonNullableUsage,
+    EMPTY_USAGE,
+    type GlobalCacheStrategy,
+    logAPIError,
+    logAPIQuery,
+    logAPISuccessAndDuration,
+    type NonNullableUsage,
 } from './logging.js'
 import {
-  CACHE_TTL_1HOUR_MS,
-  checkResponseForCacheBreak,
-  recordPromptState,
+    CACHE_TTL_1HOUR_MS,
+    checkResponseForCacheBreak,
+    recordPromptState,
 } from './promptCacheBreakDetection.js'
 import {
-  CannotRetryError,
-  FallbackTriggeredError,
-  is529Error,
-  type RetryContext,
-  withRetry,
+    CannotRetryError,
+    FallbackTriggeredError,
+    is529Error,
+    type RetryContext,
+    withRetry,
 } from './withRetry.js'
 
 // Define a type that represents valid JSON values
@@ -815,10 +819,14 @@ export async function* queryModelWithStreaming({
   StreamEvent | AssistantMessage | SystemAPIErrorMessage,
   void
 > {
-  // Token economy: check response cache before making API call
+  // Layer 1: Exact-match response cache (in-memory, token economy mode)
+  const messageSummary = messages.map(m => ({
+    role: m.type === 'assistant' ? 'assistant' : 'user',
+    content: 'message' in m ? (m as AssistantMessage).message?.content : '',
+  }))
   const cached = getCachedResponse(
     systemPrompt.join('\n'),
-    messages.map(m => ({ role: m.type === 'assistant' ? 'assistant' : 'user', content: 'message' in m ? (m as AssistantMessage).message?.content : '' })),
+    messageSummary,
     options.model,
   )
   if (cached) {
@@ -827,7 +835,18 @@ export async function* queryModelWithStreaming({
     return
   }
 
-  // Normal path: stream from provider
+  // Layer 2: Semantic similarity cache (persistent, Ollama embeddings)
+  const semanticHit = await getSemanticCachedResponse(
+    messageSummary,
+    options.model,
+  )
+  if (semanticHit) {
+    const syntheticMessage = createAssistantMessageForCache(semanticHit.responseText)
+    yield syntheticMessage
+    return
+  }
+
+  // Layer 3: Normal path — stream from provider
   let lastAssistantMessage: AssistantMessage | undefined
   for await (const event of withStreamingVCR(messages, async function* () {
     yield* queryModel(
@@ -845,7 +864,7 @@ export async function* queryModelWithStreaming({
     yield event
   }
 
-  // Token economy: cache text-only responses (no tool_use)
+  // Cache text-only responses (no tool_use — those have side effects)
   if (lastAssistantMessage) {
     const content = lastAssistantMessage.message?.content
     if (content && Array.isArray(content)) {
@@ -857,13 +876,25 @@ export async function* queryModelWithStreaming({
           .join('\n')
         if (textContent.length > 0) {
           const estimatedTokens = Math.ceil(textContent.length / 4)
+
+          // Store in exact-match cache (in-memory)
           cacheResponse(
             systemPrompt.join('\n'),
-            messages.map(m => ({ role: m.type === 'assistant' ? 'assistant' : 'user', content: 'message' in m ? (m as AssistantMessage).message?.content : '' })),
+            messageSummary,
             options.model,
             textContent,
             estimatedTokens,
           )
+
+          // Store in semantic cache (persistent, non-blocking)
+          cacheSemanticResponse(
+            messageSummary,
+            options.model,
+            textContent,
+            estimatedTokens,
+          ).catch(() => {
+            // Embedding unavailable — silently skip
+          })
         }
       }
     }
