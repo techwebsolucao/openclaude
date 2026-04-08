@@ -244,7 +244,7 @@ export type GlobalConfig = {
   tokenEconomyEnabled: boolean // Controls whether token economy mode is enabled (aggressive context savings)
   /** User-tunable token economy parameters. Each overrides the built-in default when set. */
   tokenEconomyConfig?: {
-    contextWindowFraction?: number   // 0-1, default 0.75. Fraction of model context to use.
+    contextWindowFraction?: number   // 0-1, default 0.50. Fraction of model context to use.
     autocompactBufferTokens?: number // default 40000. Higher = compact earlier.
     maxResultSizeChars?: number      // default 20000. Per-tool result cap (chars).
     maxToolResultsPerMessage?: number // default 80000. Per-message aggregate cap (chars).

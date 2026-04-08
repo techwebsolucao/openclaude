@@ -7,7 +7,7 @@ import { isEnvTruthy } from './envUtils.js'
  * When enabled, applies aggressive strategies to reduce token consumption:
  *
  * 1. Earlier auto-compaction: triggers at ~80% context usage instead of ~93%
- * 2. Reduced effective context window: 75% of the model's full window
+ * 2. Reduced effective context window: 50% of the model's full window
  * 3. More aggressive diminishing returns detection in budget tracking
  * 4. Lower tool result limits: 20k per tool (vs 50k), 80k per message (vs 200k)
  * 5. Skips memory/skill prefetches (avoids wasted side-queries)
@@ -28,7 +28,7 @@ import { isEnvTruthy } from './envUtils.js'
 // --- Built-in defaults (used when user hasn't overridden) ---
 
 // Context Window
-export const ECONOMY_CONTEXT_WINDOW_FRACTION = 0.75
+export const ECONOMY_CONTEXT_WINDOW_FRACTION = 0.50
 // Auto-compact
 export const ECONOMY_AUTOCOMPACT_BUFFER_TOKENS = 40_000
 // Diminishing returns
