@@ -2922,10 +2922,12 @@ export function REPL({
       }
       await onQueryImpl(latestMessages, newMessages, abortController, shouldQuery, additionalAllowedTools, mainLoopModelParam, effort);
     } finally {
-      // queryGuard.end() atomically checks generation and transitions
-      // running→idle. Returns false if a newer query owns the guard
-      // (cancel+resubmit race where the stale finally fires as a microtask).
-      if (queryGuard.end(thisGeneration)) {
+      // queryGuard.endAndSettle() checks generation and transitions
+      // running→settling. The guard stays active (isActive=true) so
+      // the queue processor won't fire until completeSettle() below.
+      // Returns false if a newer query owns the guard (cancel+resubmit
+      // race where the stale finally fires as a microtask).
+      if (queryGuard.endAndSettle(thisGeneration)) {
         setLastQueryCompletionTime(Date.now());
         skipIdleCheckRef.current = false;
         // Always reset loading state in finally - this ensures cleanup even
@@ -3013,6 +3015,10 @@ export function REPL({
         // controller makes ctrl+c fire onCancel() (aborting nothing) instead of
         // propagating to the double-press exit flow.
         setAbortController(null);
+
+        // All post-turn work is done — transition settling→idle so the queue
+        // processor can fire. This must be the LAST thing in the block.
+        queryGuard.completeSettle();
       }
 
       // Auto-restore: if the user interrupted before any meaningful response

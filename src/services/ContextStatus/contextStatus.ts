@@ -9,7 +9,7 @@
  */
 
 import { randomUUID } from 'crypto'
-import { getSdkBetas, getTotalInputTokens, getTotalOutputTokens } from '../../bootstrap/state.js'
+import { getLastInputTokens, getSdkBetas, getTotalInputTokens, getTotalOutputTokens } from '../../bootstrap/state.js'
 import { getTotalCost } from '../../cost-tracker.js'
 import type { Message } from '../../types/message.js'
 import {
@@ -57,26 +57,33 @@ export function buildContextStatus(
   const contextWindowSize = getContextWindowForModel(model, betas)
   const usage = getCurrentUsage(messages)
 
-  // For OpenAI-compatible providers (e.g. OpenRouter), the assistant message
-  // may have usage={0,0,0,0} at render time because the usage chunk arrives
-  // after content_block_stop. Fall back to total session tokens in that case.
+  // For OpenAI-compatible providers (e.g. OpenRouter / DeepSeek), the assistant
+  // message may have usage={0,0,0,0} at render time because the usage chunk
+  // arrives after content_block_stop.
+  //
+  // Fallback chain for context-window token count:
+  //   1. Last message usage (best — includes cache tokens)
+  //   2. getLastInputTokens() (per-turn input tracked by cost-tracker)
+  //   3. Skip display (no usable signal)
+  //
+  // NOTE: getTotalInputTokens() (session cumulative) is NEVER used for the
+  // context bar — it sums ALL turns and vastly over-reports context fill.
   const sessionInput = getTotalInputTokens()
   const sessionOutput = getTotalOutputTokens()
+  const lastInput = getLastInputTokens()
 
-  // We need at least some signal to compute usage — either from the message
-  // or from the session totals tracked by the cost tracker.
   const hasMessageUsage = usage !== null && (
     usage.input_tokens > 0 ||
     usage.cache_creation_input_tokens > 0 ||
     usage.cache_read_input_tokens > 0
   )
-  const hasSessionUsage = sessionInput > 0
+  const hasLastInput = lastInput > 0
 
-  if (!hasMessageUsage && !hasSessionUsage) return null
+  if (!hasMessageUsage && !hasLastInput) return null
 
   const totalInput = hasMessageUsage
     ? usage!.input_tokens + usage!.cache_creation_input_tokens + usage!.cache_read_input_tokens
-    : sessionInput
+    : lastInput
 
   const syntheticUsage = {
     input_tokens: totalInput,
