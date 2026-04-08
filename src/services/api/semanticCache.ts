@@ -4,9 +4,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync,
 import { join } from 'path'
 import { logForDebugging } from '../../utils/debug.js'
 import {
-    cosineSimilarity,
-    generateEmbedding as generateOllamaEmbedding,
-    isEmbeddingAvailable as isOllamaEmbeddingAvailable,
+  cosineSimilarity,
+  generateEmbedding as generateOllamaEmbedding,
+  isEmbeddingAvailable as isOllamaEmbeddingAvailable,
 } from './ollamaEmbedding.js'
 
 /**
@@ -35,8 +35,8 @@ import {
 const paths = envPaths('claude-cli')
 const CACHE_DIR_NAME = 'semantic-cache'
 
-const DEFAULT_SIMILARITY_THRESHOLD = 0.94
-const DEFAULT_LOCAL_SIMILARITY_THRESHOLD = 0.95
+const DEFAULT_SIMILARITY_THRESHOLD = 0.97
+const DEFAULT_LOCAL_SIMILARITY_THRESHOLD = 0.97
 const DEFAULT_MAX_ENTRIES = 200
 const DEFAULT_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -45,7 +45,7 @@ const DEFAULT_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
  * Prevents false-positive cache hits when queries share a topic (e.g. "laravel")
  * but ask completely different questions (version vs MVC pattern).
  */
-const MIN_WORD_OVERLAP = 0.35
+const MIN_WORD_OVERLAP = 0.50
 
 type EmbeddingSource = 'ollama' | 'local'
 
