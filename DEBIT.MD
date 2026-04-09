@@ -24,8 +24,6 @@
 
 ---
 
-incluir llm local ollama e tambem cache com semantica de similaridade para evitar chamadas desnecessarias ao modelo, ou seja, se o usuario fizer uma pergunta que ja foi respondida anteriormente, o sistema pode verificar se a resposta ja esta no cache e retornar essa resposta em vez de chamar o modelo novamente. Isso pode ser feito utilizando uma tecnica de similaridade semantica para comparar a pergunta atual com as perguntas anteriores e verificar se existe uma resposta similar no cache. Assim, o sistema pode economizar recursos e fornecer respostas mais rapidamente para o usuario.
-
----
-
 Arrumar estrtura do projeto parece que foi feito interamente por IA esta uma porcaria, tem que ser arrumada para ficar mais organizada e facil de entender. A estrutura do projeto deve ser organizada de forma clara e intuitiva, com pastas e arquivos bem nomeados e organizados de acordo com a funcionalidade. Isso facilita a navegação e a compreensão do projeto, tanto para os desenvolvedores quanto para os usuarios que possam querer contribuir ou entender o funcionamento do sistema.
+
+-- verificar o que é until compact

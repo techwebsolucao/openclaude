@@ -7,11 +7,11 @@ import { isEnvTruthy } from './envUtils.js'
  * When enabled, applies aggressive strategies to reduce token consumption:
  *
  * 1. Earlier auto-compaction: triggers at ~80% context usage instead of ~93%
- * 2. Reduced effective context window: 50% of the model's full window
+ * 2. Reduced effective context window: 85% of the model's full window
  * 3. More aggressive diminishing returns detection in budget tracking
- * 4. Lower tool result limits: 20k per tool (vs 50k), 80k per message (vs 200k)
+ * 4. Lower tool result limits: 30k per tool (vs 50k), 100k per message (vs 200k)
  * 5. Skips memory/skill prefetches (avoids wasted side-queries)
- * 6. Truncates user context injection (shorter context per turn)
+ * 6. Truncates user context injection (balanced context per turn)
  * 7. Reduces token estimation padding (33% → 15%)
  * 8. Lean compact prompt (no <analysis> scratchpad, shorter output budget)
  *
@@ -28,17 +28,17 @@ import { isEnvTruthy } from './envUtils.js'
 // --- Built-in defaults (used when user hasn't overridden) ---
 
 // Context Window
-export const ECONOMY_CONTEXT_WINDOW_FRACTION = 0.50
+export const ECONOMY_CONTEXT_WINDOW_FRACTION = 0.85
 // Auto-compact
 export const ECONOMY_AUTOCOMPACT_BUFFER_TOKENS = 40_000
 // Diminishing returns
 export const ECONOMY_DIMINISHING_THRESHOLD = 300
 export const ECONOMY_DIMINISHING_MIN_CONTINUATIONS = 2
 // Tool result limits
-export const ECONOMY_MAX_RESULT_SIZE_CHARS = 20_000
-export const ECONOMY_MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 80_000
+export const ECONOMY_MAX_RESULT_SIZE_CHARS = 30_000
+export const ECONOMY_MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 100_000
 // User context truncation
-export const ECONOMY_MAX_USER_CONTEXT_VALUE_CHARS = 2_000
+export const ECONOMY_MAX_USER_CONTEXT_VALUE_CHARS = 5_000
 // Token estimation
 export const ECONOMY_TOKEN_ESTIMATION_PADDING = 1.15
 // Compact output
