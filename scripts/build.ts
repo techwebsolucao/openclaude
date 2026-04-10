@@ -42,6 +42,7 @@ const featureFlags: Record<string, boolean> = {
   CHICAGO_MCP: false,
   COWORKER_TYPE_TELEMETRY: false,
   BUILTIN_EXPLORE_PLAN_AGENTS: true,
+  EXTRACT_MEMORIES: true,
 }
 
 const result = await Bun.build({

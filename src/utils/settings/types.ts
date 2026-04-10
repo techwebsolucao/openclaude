@@ -4,8 +4,8 @@ import { SandboxSettingsSchema } from '../../entrypoints/sandboxTypes.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { lazySchema } from '../lazySchema.js'
 import {
-  EXTERNAL_PERMISSION_MODES,
-  PERMISSION_MODES,
+    EXTERNAL_PERMISSION_MODES,
+    PERMISSION_MODES,
 } from '../permissions/PermissionMode.js'
 import { MarketplaceSourceSchema } from '../plugins/schemas.js'
 import { CLAUDE_CODE_SETTINGS_SCHEMA_URL } from './constants.js'
@@ -13,16 +13,12 @@ import { PermissionRuleSchema } from './permissionValidation.js'
 
 // Re-export hook schemas and types from centralized location for backward compatibility
 export {
-  type AgentHook,
-  type BashCommandHook,
-  type HookCommand,
-  HookCommandSchema,
-  type HookMatcher,
-  HookMatcherSchema,
-  HooksSchema,
-  type HooksSettings,
-  type HttpHook,
-  type PromptHook,
+    HookCommandSchema, HookMatcherSchema,
+    HooksSchema, type AgentHook,
+    type BashCommandHook,
+    type HookCommand, type HookMatcher, type HooksSettings,
+    type HttpHook,
+    type PromptHook
 } from '../../schemas/hooks.js'
 
 // Also import for use within this file
@@ -973,6 +969,18 @@ export const SettingsSchema = lazySchema(() =>
         .optional()
         .describe(
           'Enable background memory consolidation (auto-dream). When set, overrides the server-side default.',
+        ),
+      extractMemoriesEnabled: z
+        .boolean()
+        .optional()
+        .describe(
+          'Enable background memory extraction without requiring a remote feature flag. When true, the extract-memories agent runs after each turn to persist project learnings.',
+        ),
+      sessionMemoryEnabled: z
+        .boolean()
+        .optional()
+        .describe(
+          'Enable session memory without requiring a remote feature flag. When true, session summaries are extracted and used for compaction.',
         ),
       showThinkingSummaries: z
         .boolean()

@@ -25,8 +25,8 @@ import {
 } from '../../utils/forkedAgent.js'
 import { getFsImplementation } from '../../utils/fsOperations.js'
 import {
-  type REPLHookContext,
   registerPostSamplingHook,
+  type REPLHookContext,
 } from '../../utils/hooks/postSamplingHooks.js'
 import {
   createUserMessage,
@@ -37,6 +37,7 @@ import {
   getSessionMemoryPath,
 } from '../../utils/permissions/filesystem.js'
 import { sequential } from '../../utils/sequential.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { getTokenUsage, tokenCountWithEstimation } from '../../utils/tokens.js'
 import { logEvent } from '../analytics/index.js'
@@ -78,6 +79,8 @@ import {
  * Uses cached gate value - returns immediately without blocking.
  */
 function isSessionMemoryGateEnabled(): boolean {
+  const localOverride = getInitialSettings().sessionMemoryEnabled
+  if (localOverride !== undefined) return localOverride
   return getFeatureValue_CACHED_MAY_BE_STALE('tengu_session_memory', false)
 }
 

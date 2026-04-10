@@ -2,20 +2,20 @@ import memoize from 'lodash-es/memoize.js'
 import { homedir } from 'os'
 import { isAbsolute, join, normalize, sep } from 'path'
 import {
-  getIsNonInteractiveSession,
-  getProjectRoot,
+    getIsNonInteractiveSession,
+    getProjectRoot,
 } from '../bootstrap/state.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import {
-  getClaudeConfigHomeDir,
-  isEnvDefinedFalsy,
-  isEnvTruthy,
+    getClaudeConfigHomeDir,
+    isEnvDefinedFalsy,
+    isEnvTruthy,
 } from '../utils/envUtils.js'
 import { findCanonicalGitRoot } from '../utils/git.js'
 import { sanitizePath } from '../utils/path.js'
 import {
-  getInitialSettings,
-  getSettingsForSource,
+    getInitialSettings,
+    getSettingsForSource,
 } from '../utils/settings/settings.js'
 
 /**
@@ -62,11 +62,16 @@ export function isAutoMemoryEnabled(): boolean {
  * skips that range (hasMemoryWritesSince in extractMemories.ts); when it
  * doesn't, the background agent catches anything missed.
  *
- * Callers must also gate on feature('EXTRACT_MEMORIES') — that check cannot
- * live inside this helper because feature() only tree-shakes when used
- * directly in an `if` condition.
+ * Respects extractMemoriesEnabled in settings.json as a local override,
+ * bypassing the GrowthBook gate for offline/self-hosted usage.
  */
 export function isExtractModeActive(): boolean {
+  // Local override: bypass GrowthBook gate so extract-memories works
+  // without a remote feature flag connection (claude-mem parity).
+  const localOverride = getInitialSettings().extractMemoriesEnabled
+  if (localOverride !== undefined) {
+    return localOverride && !getIsNonInteractiveSession()
+  }
   if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
     return false
   }

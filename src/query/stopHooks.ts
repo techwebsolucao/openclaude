@@ -2,46 +2,45 @@ import { feature } from 'bun:bundle'
 import { getShortcutDisplay } from '../keybindings/shortcutFormat.js'
 import { isExtractModeActive } from '../memdir/paths.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../services/analytics/index.js'
 import type { ToolUseContext } from '../Tool.js'
 import type { HookProgress } from '../types/hooks.js'
 import type {
-  AssistantMessage,
-  Message,
-  RequestStartEvent,
-  StopHookInfo,
-  StreamEvent,
-  TombstoneMessage,
-  ToolUseSummaryMessage,
+    AssistantMessage,
+    Message,
+    RequestStartEvent,
+    StopHookInfo,
+    StreamEvent,
+    TombstoneMessage,
+    ToolUseSummaryMessage,
 } from '../types/message.js'
 import { createAttachmentMessage } from '../utils/attachments.js'
 import { logForDebugging } from '../utils/debug.js'
 import { errorMessage } from '../utils/errors.js'
+import {
+    executeStopHooks,
+    executeTaskCompletedHooks,
+    executeTeammateIdleHooks,
+    getStopHookMessage,
+    getTaskCompletedHookMessage,
+    getTeammateIdleHookMessage,
+} from '../utils/hooks.js'
 import type { REPLHookContext } from '../utils/hooks/postSamplingHooks.js'
 import {
-  executeStopHooks,
-  executeTaskCompletedHooks,
-  executeTeammateIdleHooks,
-  getStopHookMessage,
-  getTaskCompletedHookMessage,
-  getTeammateIdleHookMessage,
-} from '../utils/hooks.js'
-import {
-  createStopHookSummaryMessage,
-  createSystemMessage,
-  createUserInterruptionMessage,
-  createUserMessage,
+    createStopHookSummaryMessage,
+    createSystemMessage,
+    createUserInterruptionMessage,
+    createUserMessage,
 } from '../utils/messages.js'
 import type { SystemPrompt } from '../utils/systemPromptType.js'
 import { getTaskListId, listTasks } from '../utils/tasks.js'
 import { getAgentName, getTeamName, isTeammate } from '../utils/teammate.js'
 
+import { executeExtractMemories } from '../services/extractMemories/extractMemories.js'
+
 /* eslint-disable @typescript-eslint/no-require-imports */
-const extractMemoriesModule = feature('EXTRACT_MEMORIES')
-  ? (require('../services/extractMemories/extractMemories.js') as typeof import('../services/extractMemories/extractMemories.js'))
-  : null
 const jobClassifierModule = feature('TEMPLATES')
   ? (require('../jobs/classifier.js') as typeof import('../jobs/classifier.js'))
   : null
@@ -53,8 +52,8 @@ import { executeAutoDream } from '../services/autoDream/autoDream.js'
 import { executePromptSuggestion } from '../services/PromptSuggestion/promptSuggestion.js'
 import { isBareMode, isEnvDefinedFalsy } from '../utils/envUtils.js'
 import {
-  createCacheSafeParams,
-  saveCacheSafeParams,
+    createCacheSafeParams,
+    saveCacheSafeParams,
 } from '../utils/forkedAgent.js'
 
 type StopHookResult = {
@@ -139,14 +138,13 @@ export async function* handleStopHooks(
       void executePromptSuggestion(stopHookContext)
     }
     if (
-      feature('EXTRACT_MEMORIES') &&
       !toolUseContext.agentId &&
       isExtractModeActive()
     ) {
       // Fire-and-forget in both interactive and non-interactive. For -p/SDK,
       // print.ts drains the in-flight promise after flushing the response
       // but before gracefulShutdownSync (see drainPendingExtraction).
-      void extractMemoriesModule!.executeExtractMemories(
+      void executeExtractMemories(
         stopHookContext,
         toolUseContext.appendSystemMessage,
       )

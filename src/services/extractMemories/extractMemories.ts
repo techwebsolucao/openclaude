@@ -19,13 +19,13 @@ import { getIsRemoteMode } from '../../bootstrap/state.js'
 import type { CanUseToolFn } from '../../hooks/useCanUseTool.js'
 import { ENTRYPOINT_NAME } from '../../memdir/memdir.js'
 import {
-  formatMemoryManifest,
-  scanMemoryFiles,
+    formatMemoryManifest,
+    scanMemoryFiles,
 } from '../../memdir/memoryScan.js'
 import {
-  getAutoMemPath,
-  isAutoMemoryEnabled,
-  isAutoMemPath,
+    getAutoMemPath,
+    isAutoMemoryEnabled,
+    isAutoMemPath,
 } from '../../memdir/paths.js'
 import type { Tool } from '../../Tool.js'
 import { BASH_TOOL_NAME } from '../../tools/BashTool/toolName.js'
@@ -36,29 +36,29 @@ import { GLOB_TOOL_NAME } from '../../tools/GlobTool/prompt.js'
 import { GREP_TOOL_NAME } from '../../tools/GrepTool/prompt.js'
 import { REPL_TOOL_NAME } from '../../tools/REPLTool/constants.js'
 import type {
-  AssistantMessage,
-  Message,
-  SystemLocalCommandMessage,
-  SystemMessage,
+    AssistantMessage,
+    Message,
+    SystemLocalCommandMessage,
+    SystemMessage,
 } from '../../types/message.js'
 import { createAbortController } from '../../utils/abortController.js'
 import { count, uniq } from '../../utils/array.js'
 import { logForDebugging } from '../../utils/debug.js'
 import {
-  createCacheSafeParams,
-  runForkedAgent,
+    createCacheSafeParams,
+    runForkedAgent,
 } from '../../utils/forkedAgent.js'
 import type { REPLHookContext } from '../../utils/hooks/postSamplingHooks.js'
 import {
-  createMemorySavedMessage,
-  createUserMessage,
+    createMemorySavedMessage,
+    createUserMessage,
 } from '../../utils/messages.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 import { logEvent } from '../analytics/index.js'
 import { sanitizeToolNameForAnalytics } from '../analytics/metadata.js'
 import {
-  buildExtractAutoOnlyPrompt,
-  buildExtractCombinedPrompt,
+    buildExtractAutoOnlyPrompt,
+    buildExtractCombinedPrompt,
 } from './prompts.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -533,11 +533,18 @@ export function initExtractMemories(): void {
       return
     }
 
-    if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
-      if (process.env.USER_TYPE === 'ant' && !hasLoggedGateFailure) {
-        hasLoggedGateFailure = true
-        logEvent('tengu_extract_memories_gate_disabled', {})
+    // Local override: when extractMemoriesEnabled is set in settings.json,
+    // skip the GrowthBook gate so the memory system works offline.
+    const localOverride = (await import('../../utils/settings/settings.js')).getInitialSettings().extractMemoriesEnabled
+    if (localOverride === undefined) {
+      if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
+        if (process.env.USER_TYPE === 'ant' && !hasLoggedGateFailure) {
+          hasLoggedGateFailure = true
+          logEvent('tengu_extract_memories_gate_disabled', {})
+        }
+        return
       }
+    } else if (!localOverride) {
       return
     }
 
