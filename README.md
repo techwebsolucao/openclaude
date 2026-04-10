@@ -84,6 +84,13 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
 
 ```json
 {
+  "model": "qwen/qwen3.6-plus",
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {},
+  "autoMemoryEnabled": true,
+  "autoDreamEnabled": true,
+  "extractMemoriesEnabled": false,
+  "sessionMemoryEnabled": false,
   "agentModels": {
     "deepseek/deepseek-v3.2": {
       "base_url": "https://openrouter.ai/api/v1",
