@@ -27,3 +27,10 @@
 Arrumar estrtura do projeto parece que foi feito interamente por IA esta uma porcaria, tem que ser arrumada para ficar mais organizada e facil de entender. A estrutura do projeto deve ser organizada de forma clara e intuitiva, com pastas e arquivos bem nomeados e organizados de acordo com a funcionalidade. Isso facilita a navegação e a compreensão do projeto, tanto para os desenvolvedores quanto para os usuarios que possam querer contribuir ou entender o funcionamento do sistema.
 
 -- verificar o que é until compact
+
+
+-- 
+
+Pendencia 
+ - sessionMemoryEnabled
+- extractMemoriesEnabled estao consumindo muito token verificar se e bug ou background e resolver.
