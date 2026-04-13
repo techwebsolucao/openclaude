@@ -5,8 +5,10 @@
  * Addresses: https://github.com/Gitlawb/openclaude/issues/55
  */
 
+import { homedir } from 'os';
 import { isLocalProviderUrl } from '../services/api/providerConfig.js';
-import { getLocalOpenAICompatibleProviderLabel } from '../utils/providerDiscovery.js';
+import { getEnabledSettingSources } from '../utils/settings/constants.js';
+import { getSettingsFilePathForSource, getSettingsForSource } from '../utils/settings/settings.js';
 
 declare const MACRO: { VERSION: string; DISPLAY_VERSION?: string }
 
@@ -79,69 +81,79 @@ const LOGO_CLAUDE = [
   `  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\u255a\u2550\u255d   \u255a\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u255d  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d`,
 ]
 
-// ─── Provider detection ───────────────────────────────────────────────────────
+// ─── Settings snapshot ────────────────────────────────────────────────────────
 
-function detectProvider(): { name: string; model: string; baseUrl: string; isLocal: boolean } {
-  const useGemini = process.env.CLAUDE_CODE_USE_GEMINI === '1' || process.env.CLAUDE_CODE_USE_GEMINI === 'true'
-  const useGithub = process.env.CLAUDE_CODE_USE_GITHUB === '1' || process.env.CLAUDE_CODE_USE_GITHUB === 'true'
-  const useOpenAI = process.env.CLAUDE_CODE_USE_OPENAI === '1' || process.env.CLAUDE_CODE_USE_OPENAI === 'true'
+interface RouteEntry {
+  agent: string
+  model: string
+  baseUrl?: string
+  isLocal: boolean
+}
 
-  if (useGemini) {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
-    const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai'
-    return { name: 'Google Gemini', model, baseUrl, isLocal: false }
-  }
+interface SettingsSnapshot {
+  routes: RouteEntry[]       // from agentRouting + agentModels (preferred)
+  model?: string             // fallback: bare settings.model
+  apiBase?: string           // fallback: bare settings.apiBase
+  isLocal: boolean
+  configFile: string
+}
 
-  if (useGithub) {
-    const model = process.env.OPENAI_MODEL || 'github:copilot'
-    const baseUrl =
-      process.env.OPENAI_BASE_URL || 'https://models.github.ai/inference'
-    return { name: 'GitHub Models', model, baseUrl, isLocal: false }
-  }
+function shortenPath(p: string): string {
+  const home = homedir()
+  return p.startsWith(home) ? '~' + p.slice(home.length) : p
+}
 
-  if (useOpenAI) {
-    const rawModel = process.env.OPENAI_MODEL || 'gpt-4o'
-    const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'
-    const isLocal = isLocalProviderUrl(baseUrl)
-    let name = 'OpenAI'
-    if (/deepseek/i.test(baseUrl) || /deepseek/i.test(rawModel))       name = 'DeepSeek'
-    else if (/openrouter/i.test(baseUrl))                             name = 'OpenRouter'
-    else if (/together/i.test(baseUrl))                               name = 'Together AI'
-    else if (/groq/i.test(baseUrl))                                   name = 'Groq'
-    else if (/mistral/i.test(baseUrl) || /mistral/i.test(rawModel))     name = 'Mistral'
-    else if (/azure/i.test(baseUrl))                                  name = 'Azure OpenAI'
-    else if (/llama/i.test(rawModel))                                    name = 'Meta Llama'
-    else if (isLocal)                                                  name = getLocalOpenAICompatibleProviderLabel(baseUrl)
-    
-    // Resolve model alias to actual model name + reasoning effort
-    let displayModel = rawModel
-    const codexAliases: Record<string, { model: string; reasoningEffort?: string }> = {
-      codexplan: { model: 'gpt-5.4', reasoningEffort: 'high' },
-      'gpt-5.4': { model: 'gpt-5.4', reasoningEffort: 'high' },
-      'gpt-5.3-codex': { model: 'gpt-5.3-codex', reasoningEffort: 'high' },
-      'gpt-5.3-codex-spark': { model: 'gpt-5.3-codex-spark' },
-      codexspark: { model: 'gpt-5.3-codex-spark' },
-      'gpt-5.2-codex': { model: 'gpt-5.2-codex', reasoningEffort: 'high' },
-      'gpt-5.1-codex-max': { model: 'gpt-5.1-codex-max', reasoningEffort: 'high' },
-      'gpt-5.1-codex-mini': { model: 'gpt-5.1-codex-mini' },
-      'gpt-5.4-mini': { model: 'gpt-5.4-mini', reasoningEffort: 'medium' },
-      'gpt-5.2': { model: 'gpt-5.2', reasoningEffort: 'medium' },
-    }
-    const alias = rawModel.toLowerCase()
-    if (alias in codexAliases) {
-      const resolved = codexAliases[alias]
-      displayModel = resolved.model
-      if (resolved.reasoningEffort) {
-        displayModel = `${displayModel} (${resolved.reasoningEffort})`
+/**
+ * Reads provider-relevant fields directly from the highest-priority settings
+ * source that contains them. Returns null if no settings have provider config.
+ * Prefers agentRouting+agentModels; falls back to model/apiBase.
+ */
+function readSettingsSnapshot(): SettingsSnapshot | null {
+  const sources = getEnabledSettingSources()
+  for (const source of sources) {
+    const settings = getSettingsForSource(source)
+    if (!settings) continue
+
+    const routing = settings.agentRouting as Record<string, string> | undefined
+    const models = settings.agentModels as Record<string, { base_url?: string; api_key?: string }> | undefined
+    const model = settings.model as string | undefined
+    const apiBase = (settings as Record<string, unknown>).apiBase as string | undefined
+
+    const hasRouting = routing && Object.keys(routing).length > 0
+    const hasSimple = !!(model || apiBase)
+    if (!hasRouting && !hasSimple) continue
+
+    const filePath = getSettingsFilePathForSource(source)
+    if (!filePath) continue
+
+    const routes: RouteEntry[] = []
+    if (hasRouting) {
+      for (const [agent, modelName] of Object.entries(routing!)) {
+        const info = models?.[modelName]
+        const baseUrl = info?.base_url
+        routes.push({
+          agent,
+          model: modelName,
+          baseUrl,
+          isLocal: baseUrl ? isLocalProviderUrl(baseUrl) : false,
+        })
       }
     }
-    
-    return { name, model: displayModel, baseUrl, isLocal }
-  }
 
-  // Default: OpenClaude
-  const model = process.env.ANTHROPIC_MODEL || process.env.CLAUDE_MODEL || 'claude-sonnet-4-6'
-  return { name: 'OpenClaude', model, baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com', isLocal: false }
+    // Overall isLocal: true if any route (or the fallback apiBase) is local
+    const anyLocal =
+      routes.some(r => r.isLocal) ||
+      (apiBase ? isLocalProviderUrl(apiBase) : false)
+
+    return {
+      routes,
+      model: hasRouting ? undefined : model,
+      apiBase: hasRouting ? undefined : apiBase,
+      isLocal: anyLocal,
+      configFile: shortenPath(filePath),
+    }
+  }
+  return null
 }
 
 // ─── Box drawing ──────────────────────────────────────────────────────────────
@@ -157,7 +169,8 @@ export function printStartupScreen(): void {
   // Skip in non-interactive / CI / print mode
   if (process.env.CI || !process.stdout.isTTY) return
 
-  const p = detectProvider()
+  const snap = readSettingsSnapshot()
+
   const W = 62
   const out: string[] = []
 
@@ -181,7 +194,15 @@ export function printStartupScreen(): void {
   out.push(`  ${rgb(...ACCENT)}\u2726${RESET} ${rgb(...CREAM)}Any model. Every tool. Zero limits.${RESET} ${rgb(...ACCENT)}\u2726${RESET}`)
   out.push('')
 
-  // Provider info box
+  if (!snap) {
+    // No provider config in settings — show logo + version only
+    out.push(`  ${DIM}${rgb(...DIMCOL)}openclaude ${RESET}${rgb(...ACCENT)}v${MACRO.DISPLAY_VERSION ?? MACRO.VERSION}${RESET}`)
+    out.push('')
+    process.stdout.write(out.join('\n') + '\n')
+    return
+  }
+
+  // Settings config box — shows actual routing from settings.json
   out.push(`${rgb(...BORDER)}\u2554${'\u2550'.repeat(W - 2)}\u2557${RESET}`)
 
   const lbl = (k: string, v: string, c: RGB = CREAM): [string, number] => {
@@ -189,19 +210,43 @@ export function printStartupScreen(): void {
     return [` ${DIM}${rgb(...DIMCOL)}${padK}${RESET} ${rgb(...c)}${v}${RESET}`, ` ${padK} ${v}`.length]
   }
 
-  const provC: RGB = p.isLocal ? [130, 175, 130] : ACCENT
-  let [r, l] = lbl('Provider', p.name, provC)
-  out.push(boxRow(r, W, l))
-  ;[r, l] = lbl('Model', p.model)
-  out.push(boxRow(r, W, l))
-  const ep = p.baseUrl.length > 38 ? p.baseUrl.slice(0, 35) + '...' : p.baseUrl
-  ;[r, l] = lbl('Endpoint', ep)
-  out.push(boxRow(r, W, l))
+  if (snap.routes.length > 0) {
+    // agentRouting header
+    const hRow = ` ${rgb(...ACCENT)}agentRouting${RESET}`
+    out.push(boxRow(hRow, W, ' agentRouting'.length))
+
+    for (const route of snap.routes) {
+      const agentPad = route.agent.padEnd(18)
+      const urlPart = route.baseUrl
+        ? ` ${DIM}${rgb(...DIMCOL)}(${route.baseUrl.length > 26 ? route.baseUrl.slice(0, 23) + '...' : route.baseUrl})${RESET}`
+        : ''
+      const rawModelC: RGB = route.isLocal ? [130, 175, 130] : CREAM
+      const rawLine = `   ${agentPad}\u2192 ${route.model}${route.baseUrl ? ` (${route.baseUrl.length > 26 ? route.baseUrl.slice(0, 23) + '...' : route.baseUrl})` : ''}`
+      const row = `   ${DIM}${rgb(...DIMCOL)}${agentPad}${RESET}${rgb(...DIMCOL)}\u2192 ${RESET}${rgb(...rawModelC)}${route.model}${RESET}${urlPart}`
+      out.push(boxRow(row, W, rawLine.length))
+    }
+  } else {
+    // Fallback: bare model / apiBase
+    let [r, l]: [string, number] = ['', 0]
+    if (snap.model) {
+      ;[r, l] = lbl('model', snap.model)
+      out.push(boxRow(r, W, l))
+    }
+    if (snap.apiBase) {
+      const ep = snap.apiBase.length > 38 ? snap.apiBase.slice(0, 35) + '...' : snap.apiBase
+      ;[r, l] = lbl('apiBase', ep)
+      out.push(boxRow(r, W, l))
+    }
+  }
+
+  const cfgRow = ` ${rgb(...DIMCOL)}config: ${rgb(...ACCENT)}${snap.configFile}${RESET}`
+  const cfgLen = ` config: ${snap.configFile}`.length
+  out.push(boxRow(cfgRow, W, cfgLen))
 
   out.push(`${rgb(...BORDER)}\u2560${'\u2550'.repeat(W - 2)}\u2563${RESET}`)
 
-  const sC: RGB = p.isLocal ? [130, 175, 130] : ACCENT
-  const sL = p.isLocal ? 'local' : 'cloud'
+  const sC: RGB = snap.isLocal ? [130, 175, 130] : ACCENT
+  const sL = snap.isLocal ? 'local' : 'cloud'
   const sRow = ` ${rgb(...sC)}\u25cf${RESET} ${DIM}${rgb(...DIMCOL)}${sL}${RESET}    ${DIM}${rgb(...DIMCOL)}Ready \u2014 type ${RESET}${rgb(...ACCENT)}/help${RESET}${DIM}${rgb(...DIMCOL)} to begin${RESET}`
   const sLen = ` \u25cf ${sL}    Ready \u2014 type /help to begin`.length
   out.push(boxRow(sRow, W, sLen))
