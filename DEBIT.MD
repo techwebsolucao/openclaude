@@ -35,3 +35,4 @@ Pendencia
  - sessionMemoryEnabled
 - extractMemoriesEnabled estao consumindo muito token verificar se e bug ou background e resolver.
 - tirar provider ao entrar no openclaude nao faz sentido ter. ou verificar config do settings.json
+- melhorar o provider ollama parece promissor alem do openrouter
