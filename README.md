@@ -38,6 +38,7 @@ OpenClaude funciona com qualquer API compatível com OpenAI. Configure via `/pro
 | Provedor | Variável | Notas |
 | --- | --- | --- |
 | OpenRouter | `OPENAI_BASE_URL=https://openrouter.ai/api/v1` | Acesso a todos os modelos da plataforma |
+| Ollama Cloud | `OPENAI_BASE_URL=https://api.ollama.com/v1` | Modelos Ollama hospedados na nuvem |
 | Ollama (local) | `OPENAI_BASE_URL=http://localhost:11434/v1` | Sem custo, sem latência de rede |
 | LM Studio | `OPENAI_BASE_URL=http://localhost:1234/v1` | Interface gráfica local |
 | DeepSeek | `OPENAI_BASE_URL=https://api.deepseek.com/v1` | API direta |
@@ -84,7 +85,7 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
 
 ```json
 {
-  "model": "qwen/qwen3.6-plus",
+  "model": "qwen/qwen3-235b-a22b",
   "enabledPlugins": {},
   "extraKnownMarketplaces": {},
   "autoMemoryEnabled": true,
@@ -92,19 +93,30 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
   "extractMemoriesEnabled": false,
   "sessionMemoryEnabled": false,
   "agentModels": {
-    "deepseek/deepseek-v3.2": {
-      "base_url": "https://openrouter.ai/api/v1",
-      "api_key": "sk-or-..."
-    }
+    "qwen3.5:397b-cloud": {
+      "base_url": "https://api.ollama.com/v1",
+      "api_key": "b4abf761305a49ba88398a62d3f2d748.0qCT0Gvw-51zX8B-3M73NJqB"
+    },
   },
   "agentRouting": {
-    "Explore": "deepseek/deepseek-v3.2",
-    "default": "deepseek/deepseek-v3.2"
+    "Explore": "qwen3.5:397b-cloud",
+    "Plan": "qwen3.5:397b-cloud",
+    "general-purpose": "qwen3.5:397b-cloud",
+    "default": "qwen3.5:397b-cloud"
   }
 }
 ```
 
-> **Nota:** Valores de `api_key` em `settings.json` são armazenados em texto plano. Mantenha este arquivo privado.
+**Chaves de roteamento disponíveis:**
+
+| Chave | Quando é usada |
+|-------|----------------|
+| `Explore` | Subagentes de exploração e leitura de código |
+| `Plan` | Modo de planejamento (`plan`) |
+| `general-purpose` | Loop principal quando não está em modo `plan` |
+| `default` | Fallback para qualquer agente não mapeado acima |
+
+> **Nota:** Valores de `api_key` em `settings.json` são armazenados em texto plano. Mantenha este arquivo privado e nunca o comite no repositório.
 
 ### Cache semântico de respostas
 
