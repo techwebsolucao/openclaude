@@ -35,4 +35,10 @@ Pendencia
 - sessionMemoryEnabled
 - extractMemoriesEnabled estao consumindo muito token verificar se e bug ou background e resolver.
 - tirar provider ao entrar no openclaude nao faz sentido ter. ou verificar config do settings.json
-- incluir suporte ollama (context e pricing)
+- incluir suporte ollama (context e pricing, se é assinatura ou pay as you go, verificar se tem effort tambem)
+
+---
+
+~~- Incluir um log dos prompts utilizado e contextos aumentando para auditoria. pois suspeito que tenha prompt desnecessarios.~~
+
+**RESOLVIDO**: Adicionada a rotina de logging de auditoria em `src/utils/log.ts` na função `captureAPIRequest`. Todos os prompts enviados para a API agora são logados localmente no arquivo `.openclaude/audit.jsonl` incluindo todo o contexto (messages e system) assim como a contagem de mensagens e tamanho para posterior auditoria.

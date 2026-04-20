@@ -1,8 +1,4 @@
 import { getBudgetContinuationMessage } from '../utils/tokenBudget.js'
-import {
-  getEconomyDiminishingMinContinuations,
-  getEconomyDiminishingThreshold,
-} from '../utils/tokenEconomy.js'
 
 const COMPLETION_THRESHOLD = 0.9
 const DIMINISHING_THRESHOLD = 500
@@ -61,18 +57,10 @@ export function checkTokenBudget(
   const pct = Math.round((turnTokens / budget) * 100)
   const deltaSinceLastCheck = globalTurnTokens - tracker.lastGlobalTurnTokens
 
-  // Token economy mode: use more aggressive thresholds
-  const effectiveDiminishingThreshold = getEconomyDiminishingThreshold(
-    DIMINISHING_THRESHOLD,
-  )
-  const effectiveMinContinuations = getEconomyDiminishingMinContinuations(
-    DIMINISHING_MIN_CONTINUATIONS,
-  )
-
   const isDiminishing =
-    tracker.continuationCount >= effectiveMinContinuations &&
-    deltaSinceLastCheck < effectiveDiminishingThreshold &&
-    tracker.lastDeltaTokens < effectiveDiminishingThreshold
+    tracker.continuationCount >= DIMINISHING_MIN_CONTINUATIONS &&
+    deltaSinceLastCheck < DIMINISHING_THRESHOLD &&
+    tracker.lastDeltaTokens < DIMINISHING_THRESHOLD
 
   if (!isDiminishing && turnTokens < budget * COMPLETION_THRESHOLD) {
     tracker.continuationCount++

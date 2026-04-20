@@ -16,107 +16,107 @@ import type { LocalAgentTaskState } from '../../tasks/LocalAgentTask/LocalAgentT
 import type { Tool, ToolUseContext } from '../../Tool.js'
 import { FileReadTool } from '../../tools/FileReadTool/FileReadTool.js'
 import {
-  FILE_READ_TOOL_NAME,
-  FILE_UNCHANGED_STUB,
+    FILE_READ_TOOL_NAME,
+    FILE_UNCHANGED_STUB,
 } from '../../tools/FileReadTool/prompt.js'
 import { ToolSearchTool } from '../../tools/ToolSearchTool/ToolSearchTool.js'
 import type { AgentId } from '../../types/ids.js'
 import type {
-  AssistantMessage,
-  AttachmentMessage,
-  HookResultMessage,
-  Message,
-  PartialCompactDirection,
-  SystemCompactBoundaryMessage,
-  SystemMessage,
-  UserMessage,
+    AssistantMessage,
+    AttachmentMessage,
+    HookResultMessage,
+    Message,
+    PartialCompactDirection,
+    SystemCompactBoundaryMessage,
+    SystemMessage,
+    UserMessage,
 } from '../../types/message.js'
 import {
-  createAttachmentMessage,
-  generateFileAttachment,
-  getAgentListingDeltaAttachment,
-  getDeferredToolsDeltaAttachment,
-  getMcpInstructionsDeltaAttachment,
+    createAttachmentMessage,
+    generateFileAttachment,
+    getAgentListingDeltaAttachment,
+    getDeferredToolsDeltaAttachment,
+    getMcpInstructionsDeltaAttachment,
 } from '../../utils/attachments.js'
 import { getMemoryPath } from '../../utils/config.js'
 import { COMPACT_MAX_OUTPUT_TOKENS } from '../../utils/context.js'
 import {
-  analyzeContext,
-  tokenStatsToStatsigMetrics,
+    analyzeContext,
+    tokenStatsToStatsigMetrics,
 } from '../../utils/contextAnalysis.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { hasExactErrorMessage } from '../../utils/errors.js'
 import { cacheToObject } from '../../utils/fileStateCache.js'
 import {
-  type CacheSafeParams,
-  runForkedAgent,
+    type CacheSafeParams,
+    runForkedAgent,
 } from '../../utils/forkedAgent.js'
 import {
-  executePostCompactHooks,
-  executePreCompactHooks,
+    executePostCompactHooks,
+    executePreCompactHooks,
 } from '../../utils/hooks.js'
 import { logError } from '../../utils/log.js'
 import { MEMORY_TYPE_VALUES } from '../../utils/memory/types.js'
 import {
-  createCompactBoundaryMessage,
-  createUserMessage,
-  getAssistantMessageText,
-  getLastAssistantMessage,
-  getMessagesAfterCompactBoundary,
-  isCompactBoundaryMessage,
-  normalizeMessagesForAPI,
+    createCompactBoundaryMessage,
+    createUserMessage,
+    getAssistantMessageText,
+    getLastAssistantMessage,
+    getMessagesAfterCompactBoundary,
+    isCompactBoundaryMessage,
+    normalizeMessagesForAPI,
 } from '../../utils/messages.js'
 import { expandPath } from '../../utils/path.js'
 import { getPlan, getPlanFilePath } from '../../utils/plans.js'
 import {
-  isSessionActivityTrackingActive,
-  sendSessionActivitySignal,
+    isSessionActivityTrackingActive,
+    sendSessionActivitySignal,
 } from '../../utils/sessionActivity.js'
 import { processSessionStartHooks } from '../../utils/sessionStart.js'
 import {
-  getTranscriptPath,
-  reAppendSessionMetadata,
+    getTranscriptPath,
+    reAppendSessionMetadata,
 } from '../../utils/sessionStorage.js'
 import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import { getEconomyCompactMaxOutputTokens, isTokenEconomyEnabled } from '../../utils/tokenEconomy.js'
+
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { getTaskOutputPath } from '../../utils/task/diskOutput.js'
 import {
-  getTokenUsage,
-  tokenCountFromLastAPIResponse,
-  tokenCountWithEstimation,
+    getTokenUsage,
+    tokenCountFromLastAPIResponse,
+    tokenCountWithEstimation,
 } from '../../utils/tokens.js'
 import {
-  extractDiscoveredToolNames,
-  isToolSearchEnabled,
+    extractDiscoveredToolNames,
+    isToolSearchEnabled,
 } from '../../utils/toolSearch.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 import {
-  type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-  logEvent,
+    type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+    logEvent,
 } from '../analytics/index.js'
 import {
-  getMaxOutputTokensForModel,
-  queryModelWithStreaming,
+    getMaxOutputTokensForModel,
+    queryModelWithStreaming,
 } from '../api/claude.js'
 import {
-  getPromptTooLongTokenGap,
-  PROMPT_TOO_LONG_ERROR_MESSAGE,
-  startsWithApiErrorPrefix,
+    getPromptTooLongTokenGap,
+    PROMPT_TOO_LONG_ERROR_MESSAGE,
+    startsWithApiErrorPrefix,
 } from '../api/errors.js'
 import { notifyCompaction } from '../api/promptCacheBreakDetection.js'
 import { getRetryDelay } from '../api/withRetry.js'
 import {
-  roughTokenCountEstimation,
-  roughTokenCountEstimationForMessages,
+    roughTokenCountEstimation,
+    roughTokenCountEstimationForMessages,
 } from '../tokenEstimation.js'
 import { groupMessagesByApiRound } from './grouping.js'
 import {
-  getCompactPrompt,
-  getCompactUserSummaryMessage,
-  getPartialCompactPrompt,
+    getCompactPrompt,
+    getCompactUserSummaryMessage,
+    getPartialCompactPrompt,
 } from './prompt.js'
 
 export const POST_COMPACT_MAX_FILES_TO_RESTORE = 5
@@ -1314,7 +1314,7 @@ async function streamCompactSummary({
           isNonInteractiveSession: context.options.isNonInteractiveSession,
           hasAppendSystemPrompt: !!context.options.appendSystemPrompt,
           maxOutputTokensOverride: Math.min(
-            isTokenEconomyEnabled() ? getEconomyCompactMaxOutputTokens() : COMPACT_MAX_OUTPUT_TOKENS,
+            COMPACT_MAX_OUTPUT_TOKENS,
             getMaxOutputTokensForModel(context.options.mainLoopModel),
           ),
           querySource: 'compact',

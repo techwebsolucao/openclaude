@@ -60,8 +60,8 @@ export type SettingsSyncUploadResult = {
  */
 export const SYNC_KEYS = {
   USER_SETTINGS: '~/.openclaude/settings.json',
-  USER_MEMORY: '~/.openclaude/CLAUDE.md',
+  USER_MEMORY: '~/.openclaude/OPENCLAUDE.md',
   projectSettings: (projectId: string) =>
     `projects/${projectId}/.openclaude/settings.local.json`,
-  projectMemory: (projectId: string) => `projects/${projectId}/CLAUDE.local.md`,
+  projectMemory: (projectId: string) => `projects/${projectId}/OPENCLAUDE.local.md`,
 } as const

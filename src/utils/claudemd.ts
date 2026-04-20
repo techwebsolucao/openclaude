@@ -1,10 +1,10 @@
 /**
  * Files are loaded in the following order:
  *
- * 1. Managed memory (eg. /etc/claude-code/CLAUDE.md) - Global instructions for all users
- * 2. User memory (~/.openclaude/CLAUDE.md) - Private global instructions for all projects
- * 3. Project memory (CLAUDE.md, .openclaude/CLAUDE.md, and .openclaude/rules/*.md in project roots) - Instructions checked into the codebase
- * 4. Local memory (CLAUDE.local.md in project roots) - Private project-specific instructions
+ * 1. Managed memory (eg. /etc/claude-code/OPENCLAUDE.md) - Global instructions for all users
+ * 2. User memory (~/.openclaude/OPENCLAUDE.md) - Private global instructions for all projects
+ * 3. Project memory (OPENCLAUDE.md, CLAUDE.md, .openclaude/OPENCLAUDE.md, .openclaude/OPENCLAUDE.md, and .openclaude/rules/*.md in project roots) - Instructions checked into the codebase
+ * 4. Local memory (OPENCLAUDE.local.md, CLAUDE.local.md in project roots) - Private project-specific instructions
  *
  * Files are loaded in reverse order of priority, i.e. the latest files are highest priority
  * with the model paying more attention to them.
@@ -13,7 +13,7 @@
  * - User memory is loaded from the user's home directory
  * - Project and Local files are discovered by traversing from the current directory up to root
  * - Files closer to the current directory have higher priority (loaded later)
- * - CLAUDE.md, .openclaude/CLAUDE.md, and all .md files in .openclaude/rules/ are checked in each directory for Project memory
+ * - OPENCLAUDE.md, CLAUDE.md, .openclaude/OPENCLAUDE.md, .openclaude/OPENCLAUDE.md, and all .md files in .openclaude/rules/ are checked in each directory for Project memory
  *
  * Memory @include directive:
  * - Memory files can include other files using @ notation
@@ -546,7 +546,7 @@ function extractIncludePathsFromTokens(
 const MAX_INCLUDE_DEPTH = 5
 
 /**
- * Checks whether a CLAUDE.md file path is excluded by the claudeMdExcludes setting.
+ * Checks whether a OPENCLAUDE.md file path is excluded by the claudeMdExcludes setting.
  * Only applies to User, Project, and Local memory types.
  * Managed, AutoMem, and TeamMem types are never excluded.
  *
@@ -568,7 +568,7 @@ function isClaudeMdExcluded(filePath: string, type: MemoryType): boolean {
 
   // Build an expanded pattern list that includes realpath-resolved versions of
   // absolute patterns. This handles symlinks like /tmp -> /private/tmp on macOS:
-  // the user writes "/tmp/project/CLAUDE.md" in their exclude, but the system
+  // the user writes "/tmp/project/OPENCLAUDE.md" in their exclude, but the system
   // resolves the CWD to "/private/tmp/project/...", so the file path uses the
   // real path. By resolving the patterns too, both sides match.
   const expandedPatterns = resolveExcludePatterns(patterns).filter(
@@ -868,10 +868,10 @@ export const getMemoryFiles = memoize(
     // When running from a git worktree nested inside its main repo (e.g.,
     // .openclaude/worktrees/<name>/ from `claude -w`), the upward walk passes
     // through both the worktree root and the main repo root. Both contain
-    // checked-in files like CLAUDE.md and .openclaude/rules/*.md, so the same
+    // checked-in files like OPENCLAUDE.md and .openclaude/rules/*.md, so the same
     // content gets loaded twice. Skip Project-type (checked-in) files from
     // directories above the worktree but within the main repo — the worktree
-    // already has its own checkout. CLAUDE.local.md is gitignored so it only
+    // already has its own checkout. OPENCLAUDE.local.md is gitignored so it only
     // exists in the main repo and is still loaded.
     // See: https://github.com/anthropics/claude-code/issues/29599
     const gitRoot = findGitRoot(originalCwd)
@@ -892,28 +892,29 @@ export const getMemoryFiles = memoize(
         pathInWorkingPath(dir, canonicalRoot) &&
         !pathInWorkingPath(dir, gitRoot)
 
-      // Try reading CLAUDE.md (Project) - only if projectSettings is enabled
+      // Try reading project memory files (OPENCLAUDE.md and OPENCLAUDE.md) - only if projectSettings is enabled
       if (isSettingSourceEnabled('projectSettings') && !skipProject) {
-        const projectPath = join(dir, 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            projectPath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        for (const fileName of ['OPENCLAUDE.md', 'CLAUDE.md']) {
+          const projectPath = join(dir, fileName)
+          result.push(
+            ...(await processMemoryFile(
+              projectPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
 
-        // Try reading .openclaude/CLAUDE.md (Project)
-        const dotClaudePath = join(dir, '.openclaude', 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            dotClaudePath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+          const dotClaudePath = join(dir, '.openclaude', fileName)
+          result.push(
+            ...(await processMemoryFile(
+              dotClaudePath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
         // Try reading .openclaude/rules/*.md files (Project)
         const rulesDir = join(dir, '.openclaude', 'rules')
@@ -928,48 +929,52 @@ export const getMemoryFiles = memoize(
         )
       }
 
-      // Try reading CLAUDE.local.md (Local) - only if localSettings is enabled
+      // Try reading local memory files (OPENCLAUDE.local.md and OPENCLAUDE.local.md) - only if localSettings is enabled
       if (isSettingSourceEnabled('localSettings')) {
-        const localPath = join(dir, 'CLAUDE.local.md')
-        result.push(
-          ...(await processMemoryFile(
-            localPath,
-            'Local',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        for (const fileName of ['OPENCLAUDE.local.md', 'CLAUDE.local.md']) {
+          const localPath = join(dir, fileName)
+          result.push(
+            ...(await processMemoryFile(
+              localPath,
+              'Local',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
       }
     }
 
-    // Process CLAUDE.md from additional directories (--add-dir) if env var is enabled
+    // Process OPENCLAUDE.md from additional directories (--add-dir) if env var is enabled
     // This is controlled by CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD and defaults to off
     // Note: we don't check isSettingSourceEnabled('projectSettings') here because --add-dir
     // is an explicit user action and the SDK defaults settingSources to [] when not specified
     if (isEnvTruthy(process.env.CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD)) {
       const additionalDirs = getAdditionalDirectoriesForClaudeMd()
       for (const dir of additionalDirs) {
-        // Try reading CLAUDE.md from the additional directory
-        const projectPath = join(dir, 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            projectPath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+        for (const fileName of ['OPENCLAUDE.md', 'CLAUDE.md']) {
+          // Try reading project memory files from the additional directory
+          const projectPath = join(dir, fileName)
+          result.push(
+            ...(await processMemoryFile(
+              projectPath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
 
-        // Try reading .openclaude/CLAUDE.md from the additional directory
-        const dotClaudePath = join(dir, '.openclaude', 'CLAUDE.md')
-        result.push(
-          ...(await processMemoryFile(
-            dotClaudePath,
-            'Project',
-            processedPaths,
-            includeExternal,
-          )),
-        )
+          // Try reading .openclaude/OPENCLAUDE.md or .openclaude/OPENCLAUDE.md from the additional directory
+          const dotClaudePath = join(dir, '.openclaude', fileName)
+          result.push(
+            ...(await processMemoryFile(
+              dotClaudePath,
+              'Project',
+              processedPaths,
+              includeExternal,
+            )),
+          )
+        }
 
         // Try reading .openclaude/rules/*.md files from the additional directory
         const rulesDir = join(dir, '.openclaude', 'rules')
@@ -1051,7 +1056,7 @@ export const getMemoryFiles = memoize(
     // Fire InstructionsLoaded hook for each instruction file loaded
     // (fire-and-forget, audit/observability only).
     // AutoMem/TeamMem are intentionally excluded — they're a separate
-    // memory system, not "instructions" in the CLAUDE.md/rules sense.
+    // memory system, not "instructions" in the OPENCLAUDE.md/rules sense.
     // Gated on !forceIncludeExternal: the forceIncludeExternal=true variant
     // is only used by getExternalClaudeMdIncludes() for approval checks, not
     // for building context — firing the hook there would double-fire on startup.
@@ -1248,7 +1253,7 @@ export async function getManagedAndUserConditionalRules(
 
 /**
  * Gets memory files for a single nested directory (between CWD and target).
- * Loads CLAUDE.md, unconditional rules, and conditional rules for that directory.
+ * Loads OPENCLAUDE.md, CLAUDE.md, unconditional rules, and conditional rules for that directory.
  *
  * @param dir The directory to process
  * @param targetPath The target file path (for conditional rule matching)
@@ -1262,34 +1267,38 @@ export async function getMemoryFilesForNestedDirectory(
 ): Promise<MemoryFileInfo[]> {
   const result: MemoryFileInfo[] = []
 
-  // Process project memory files (CLAUDE.md and .openclaude/CLAUDE.md)
+  // Process project memory files (OPENCLAUDE.md and OPENCLAUDE.md)
   if (isSettingSourceEnabled('projectSettings')) {
-    const projectPath = join(dir, 'CLAUDE.md')
-    result.push(
-      ...(await processMemoryFile(
-        projectPath,
-        'Project',
-        processedPaths,
-        false,
-      )),
-    )
-    const dotClaudePath = join(dir, '.openclaude', 'CLAUDE.md')
-    result.push(
-      ...(await processMemoryFile(
-        dotClaudePath,
-        'Project',
-        processedPaths,
-        false,
-      )),
-    )
+    for (const fileName of ['OPENCLAUDE.md', 'CLAUDE.md']) {
+      const projectPath = join(dir, fileName)
+      result.push(
+        ...(await processMemoryFile(
+          projectPath,
+          'Project',
+          processedPaths,
+          false,
+        )),
+      )
+      const dotClaudePath = join(dir, '.openclaude', fileName)
+      result.push(
+        ...(await processMemoryFile(
+          dotClaudePath,
+          'Project',
+          processedPaths,
+          false,
+        )),
+      )
+    }
   }
 
-  // Process local memory file (CLAUDE.local.md)
+  // Process local memory files (OPENCLAUDE.local.md and OPENCLAUDE.local.md)
   if (isSettingSourceEnabled('localSettings')) {
-    const localPath = join(dir, 'CLAUDE.local.md')
-    result.push(
-      ...(await processMemoryFile(localPath, 'Local', processedPaths, false)),
-    )
+    for (const fileName of ['OPENCLAUDE.local.md', 'CLAUDE.local.md']) {
+      const localPath = join(dir, fileName)
+      result.push(
+        ...(await processMemoryFile(localPath, 'Local', processedPaths, false)),
+      )
+    }
   }
 
   const rulesDir = join(dir, '.openclaude', 'rules')
@@ -1439,20 +1448,25 @@ export async function shouldShowClaudeMdExternalIncludesWarning(): Promise<boole
 }
 
 /**
- * Check if a file path is a memory file (CLAUDE.md, CLAUDE.local.md, or .openclaude/rules/*.md)
+ * Check if a file path is a memory file (OPENCLAUDE.md, CLAUDE.md, OPENCLAUDE.local.md, CLAUDE.local.md, or .openclaude/rules/*.md)
  */
 export function isMemoryFilePath(filePath: string): boolean {
   const name = basename(filePath)
 
-  // CLAUDE.md or CLAUDE.local.md anywhere
-  if (name === 'CLAUDE.md' || name === 'CLAUDE.local.md') {
+  // OPENCLAUDE.md, CLAUDE.md, OPENCLAUDE.local.md or CLAUDE.local.md anywhere
+  if (
+    name === 'OPENCLAUDE.md' ||
+    name === 'CLAUDE.md' ||
+    name === 'OPENCLAUDE.local.md' ||
+    name === 'CLAUDE.local.md'
+  ) {
     return true
   }
 
   // .md files in .openclaude/rules/ directories
   if (
     name.endsWith('.md') &&
-    filePath.includes(`${sep}.claude${sep}rules${sep}`)
+    filePath.includes(`${sep}.openclaude${sep}rules${sep}`)
   ) {
     return true
   }

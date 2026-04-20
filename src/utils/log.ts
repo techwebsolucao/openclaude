@@ -18,6 +18,7 @@ import { CACHE_PATHS } from './cachePaths.js'
 import { stripDisplayTags, stripDisplayTagsAllowEmpty } from './displayTags.js'
 import { isEnvTruthy } from './envUtils.js'
 import { toError } from './errors.js'
+import { getFsImplementation } from './fsOperations.js'
 import { isEssentialTrafficOnly } from './privacyLevel.js'
 import { jsonParse } from './slowOperations.js'
 
@@ -332,6 +333,40 @@ export function captureAPIRequest(
   params: BetaMessageStreamParams,
   querySource?: QuerySource,
 ): void {
+  // Audit log prompt before filtering
+  try {
+    const fs = getFsImplementation()
+    const cwd = fs.cwd()
+    const openclaudeDir = join(cwd, '.openclaude')
+    const auditPath = join(openclaudeDir, 'audit.jsonl')
+
+    if (!fs.existsSync(openclaudeDir)) {
+      fs.mkdirSync(openclaudeDir)
+    }
+
+    const tokens = params.messages?.reduce((acc: number, msg: any) => {
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+      return acc + (content?.length || 0)
+    }, 0)
+
+    const systemPromptLength = params.system ? JSON.stringify(params.system).length : 0
+
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      querySource,
+      model: params.model,
+      systemPromptLength,
+      messagesCount: params.messages?.length || 0,
+      approximateCharLength: tokens,
+      messages: params.messages,
+      system: params.system
+    }
+
+    fs.appendFileSync(auditPath, JSON.stringify(logEntry) + '\\n')
+  } catch (err) {
+    // Silently fail for audit logging
+  }
+
   // startsWith, not exact match — users with non-default output styles get
   // variants like 'repl_main_thread:outputStyle:Explanatory' (querySource.ts).
   if (!querySource || !querySource.startsWith('repl_main_thread')) {
@@ -345,7 +380,7 @@ export function captureAPIRequest(
   setLastAPIRequest(paramsWithoutMessages)
   // For ant users only: also keep a reference to the final messages array so
   // /share's serialized_conversation.json captures the exact post-compaction,
-  // CLAUDE.md-injected payload the API received. Overwritten each turn;
+  // OPENCLAUDE.md-injected payload the API received. Overwritten each turn;
   // dumpPrompts.ts already holds 5 full request bodies for ants, so this is
   // not a new retention class.
   setLastAPIRequestMessages(process.env.USER_TYPE === 'ant' ? messages : null)

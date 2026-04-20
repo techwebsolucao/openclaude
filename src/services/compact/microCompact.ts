@@ -14,7 +14,7 @@ import { logForDebugging } from '../../utils/debug.js'
 import { getMainLoopModel } from '../../utils/model/model.js'
 import { SHELL_TOOL_NAMES } from '../../utils/shell/shellToolUtils.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
-import { getEconomyTokenEstimationPadding } from '../../utils/tokenEconomy.js'
+
 import {
     type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     logEvent,
@@ -208,9 +208,7 @@ export function estimateMessageTokens(messages: Message[]): number {
   }
 
   // Pad estimate — conservative since we're approximating.
-  // Token economy mode uses tighter padding (1.15 vs 1.33).
-  const padding = getEconomyTokenEstimationPadding(4 / 3)
-  return Math.ceil(totalTokens * padding)
+  return Math.ceil(totalTokens * (4 / 3))
 }
 
 export type PendingCacheEdits = {

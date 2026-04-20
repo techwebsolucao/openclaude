@@ -1844,13 +1844,13 @@ export function getMemoryPath(memoryType: MemoryType): string {
 
   switch (memoryType) {
     case 'User':
-      return join(getClaudeConfigHomeDir(), 'CLAUDE.md')
+      return join(getClaudeConfigHomeDir(), 'OPENCLAUDE.md')
     case 'Local':
-      return join(cwd, 'CLAUDE.local.md')
+      return join(cwd, 'OPENCLAUDE.local.md')
     case 'Project':
-      return join(cwd, 'CLAUDE.md')
+      return join(cwd, 'OPENCLAUDE.md')
     case 'Managed':
-      return join(getManagedFilePath(), 'CLAUDE.md')
+      return join(getManagedFilePath(), 'OPENCLAUDE.md')
     case 'AutoMem':
       return getAutoMemEntrypoint()
   }

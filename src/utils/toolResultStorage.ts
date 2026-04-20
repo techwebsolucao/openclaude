@@ -7,10 +7,10 @@ import { mkdir, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { getOriginalCwd, getSessionId } from '../bootstrap/state.js'
 import {
-  BYTES_PER_TOKEN,
-  DEFAULT_MAX_RESULT_SIZE_CHARS,
-  MAX_TOOL_RESULT_BYTES,
-  MAX_TOOL_RESULTS_PER_MESSAGE_CHARS,
+    BYTES_PER_TOKEN,
+    DEFAULT_MAX_RESULT_SIZE_CHARS,
+    MAX_TOOL_RESULT_BYTES,
+    MAX_TOOL_RESULTS_PER_MESSAGE_CHARS,
 } from '../constants/toolLimits.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import { logEvent } from '../services/analytics/index.js'
@@ -22,10 +22,7 @@ import { formatFileSize } from './format.js'
 import { logError } from './log.js'
 import { getProjectDir } from './sessionStorage.js'
 import { jsonStringify } from './slowOperations.js'
-import {
-  getEconomyMaxResultSizeChars,
-  getEconomyPerMessageBudget,
-} from './tokenEconomy.js'
+
 
 // Subdirectory name for tool results within a session
 export const TOOL_RESULTS_SUBDIR = 'tool-results'
@@ -78,9 +75,7 @@ export function getPersistenceThreshold(
   ) {
     return override
   }
-  return getEconomyMaxResultSizeChars(
-    Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS),
-  )
+  return Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS)
 }
 
 // Result of persisting a tool result to disk
@@ -436,7 +431,7 @@ export function getPerMessageBudgetLimit(): number {
   ) {
     return override
   }
-  return getEconomyPerMessageBudget(MAX_TOOL_RESULTS_PER_MESSAGE_CHARS)
+  return MAX_TOOL_RESULTS_PER_MESSAGE_CHARS
 }
 
 /**

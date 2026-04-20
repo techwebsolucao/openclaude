@@ -122,14 +122,7 @@ Configure modelos diferentes por tipo de tarefa em `~/.openclaude/settings.json`
 
 Respostas puramente textuais (sem tool calls) são cachadas em disco via embeddings neurais. Quando uma pergunta similar é feita novamente, o cache retorna a resposta anterior — **zero tokens gastos**.
 
-Funciona em duas camadas:
-
-| Camada | Tipo | Quando ativa |
-|--------|------|--------------|
-| Layer 1 | Exact-match (in-memory, SHA-256) | Token economy mode ligado |
-| Layer 2 | Similaridade semântica (persistente em disco) | **Requer Ollama** |
-
-**Layer 2 requer Ollama** com o modelo `nomic-embed-text` (768 dimensões, threshold: 0.92). Entende sinônimos, paráfrases e reformulações da mesma pergunta. Sem Ollama, o Layer 2 fica inativo — nenhuma interferência.
+Requer Ollama com o modelo `nomic-embed-text` (768 dimensões, threshold: 0.92). Entende sinônimos, paráfrases e reformulações da mesma pergunta. Sem Ollama, o cache fica inativo — sem interferência.
 
 ```bash
 # Ativar (instalar Ollama + modelo)

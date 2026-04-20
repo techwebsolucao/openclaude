@@ -1,6 +1,4 @@
 import { createHash } from 'crypto'
-import { logForDebugging } from '../../utils/debug.js'
-import { isTokenEconomyEnabled } from '../../utils/tokenEconomy.js'
 
 /**
  * In-memory LRU response cache for token economy mode.
@@ -130,20 +128,11 @@ export function generateCacheKey(
  * Only active when token economy mode is enabled.
  */
 export function getCachedResponse(
-  systemPrompt: string,
-  messages: Array<{ role: string; content: unknown }>,
-  model: string,
+  _systemPrompt: string,
+  _messages: Array<{ role: string; content: unknown }>,
+  _model: string,
 ): CachedResponse | undefined {
-  if (!isTokenEconomyEnabled()) return undefined
-
-  const key = generateCacheKey(systemPrompt, messages, model)
-  const cached = responseCache.get(key)
-  if (cached) {
-    logForDebugging(
-      `[token-economy] Cache HIT — saved ~${cached.estimatedTokens} tokens`,
-    )
-  }
-  return cached
+  return undefined
 }
 
 /**
@@ -152,20 +141,12 @@ export function getCachedResponse(
  * Only caches pure text responses (not tool_use, since those have side effects).
  */
 export function cacheResponse(
-  systemPrompt: string,
-  messages: Array<{ role: string; content: unknown }>,
-  model: string,
-  textContent: string,
-  estimatedTokens: number,
-): void {
-  if (!isTokenEconomyEnabled()) return
-
-  const key = generateCacheKey(systemPrompt, messages, model)
-  responseCache.set(key, { textContent, model, estimatedTokens })
-  logForDebugging(
-    `[token-economy] Cached response (~${estimatedTokens} tokens, cache size: ${responseCache.size})`,
-  )
-}
+  _systemPrompt: string,
+  _messages: Array<{ role: string; content: unknown }>,
+  _model: string,
+  _textContent: string,
+  _estimatedTokens: number,
+): void {}
 
 /**
  * Get cache statistics for display in /token-economy status.
