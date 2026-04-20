@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { resolveAgentProvider } from './agentRouting.js'
+import { resolveAgentProvider, resolveMainLoopProvider } from './agentRouting.js'
 import type { SettingsJson } from '../../utils/settings/types.js'
 
 const baseSettings = {
@@ -120,6 +120,72 @@ describe('resolveAgentProvider', () => {
 
   test('name only (no subagentType)', () => {
     const result = resolveAgentProvider('frontend-dev', undefined, baseSettings)
+    expect(result?.model).toBe('deepseek-chat')
+  })
+})
+
+describe('resolveMainLoopProvider', () => {
+  test('resolves default routing', () => {
+    const result = resolveMainLoopProvider(baseSettings)
+    expect(result?.model).toBe('gpt-4o')
+  })
+
+  test('resolves general-purpose routing', () => {
+    const settings = {
+      agentModels: baseSettings.agentModels,
+      agentRouting: {
+        'general-purpose': 'deepseek-chat',
+        default: 'gpt-4o',
+      },
+    } as unknown as SettingsJson
+    const result = resolveMainLoopProvider(settings)
+    expect(result?.model).toBe('deepseek-chat')
+  })
+
+  test('resolves Plan routing in plan mode', () => {
+    const settings = {
+      agentModels: baseSettings.agentModels,
+      agentRouting: {
+        Plan: 'deepseek-chat',
+        default: 'gpt-4o',
+      },
+    } as unknown as SettingsJson
+    const result = resolveMainLoopProvider(settings, 'plan')
+    expect(result?.model).toBe('deepseek-chat')
+  })
+
+  test('resolves plan routing case-insensitively', () => {
+    const settings = {
+      agentModels: baseSettings.agentModels,
+      agentRouting: {
+        plan: 'deepseek-chat',
+        default: 'gpt-4o',
+      },
+    } as unknown as SettingsJson
+    const result = resolveMainLoopProvider(settings, 'plan')
+    expect(result?.model).toBe('deepseek-chat')
+  })
+
+  test('resolves general_purpose (underscore) routing', () => {
+    const settings = {
+      agentModels: baseSettings.agentModels,
+      agentRouting: {
+        general_purpose: 'deepseek-chat',
+        default: 'gpt-4o',
+      },
+    } as unknown as SettingsJson
+    const result = resolveMainLoopProvider(settings)
+    expect(result?.model).toBe('deepseek-chat')
+  })
+
+  test('resolves Default (capital) routing', () => {
+    const settings = {
+      agentModels: baseSettings.agentModels,
+      agentRouting: {
+        Default: 'deepseek-chat',
+      },
+    } as unknown as SettingsJson
+    const result = resolveMainLoopProvider(settings)
     expect(result?.model).toBe('deepseek-chat')
   })
 })

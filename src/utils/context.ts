@@ -3,8 +3,10 @@ import { CONTEXT_1M_BETA_HEADER } from '../constants/betas.js'
 import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 import { getCanonicalName } from './model/model.js'
+import { resolveAntModel } from './model/antModels.js'
 import { getModelCapability } from './model/modelCapabilities.js'
 import { getOpenAIContextWindow, getOpenAIMaxOutputTokens } from './model/openaiContextWindows.js'
+import { isTokenEconomyEnabled } from './tokenEconomy.js'
 
 // Model context window size (200k tokens for all models right now)
 export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
@@ -49,7 +51,7 @@ export function modelSupports1M(model: string): boolean {
   return canonical.includes('claude-sonnet-4') || canonical.includes('opus-4-6')
 }
 
-export function getContextWindowForModel(
+function _getContextWindowForModel(
   model: string,
   betas?: string[],
 ): number {
@@ -101,13 +103,27 @@ export function getContextWindowForModel(
   if (getSonnet1mExpTreatmentEnabled(model)) {
     return 1_000_000
   }
+  
+  let contextWindow = MODEL_CONTEXT_WINDOW_DEFAULT
   if (process.env.USER_TYPE === 'ant') {
     const antModel = resolveAntModel(model)
     if (antModel?.contextWindow) {
-      return antModel.contextWindow
+      contextWindow = antModel.contextWindow
     }
   }
-  return MODEL_CONTEXT_WINDOW_DEFAULT
+
+  return contextWindow
+}
+
+export function getContextWindowForModel(
+  model: string,
+  betas?: string[],
+): number {
+  const contextWindow = _getContextWindowForModel(model, betas)
+  if (isTokenEconomyEnabled()) {
+    return Math.floor(contextWindow / 2)
+  }
+  return contextWindow
 }
 
 export function getSonnet1mExpTreatmentEnabled(model: string): boolean {

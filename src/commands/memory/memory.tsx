@@ -71,12 +71,6 @@ function MemoryCommand({
         <React.Suspense fallback={null}>
           <MemoryFileSelector onSelect={handleSelectMemoryFile} onCancel={handleCancel} />
         </React.Suspense>
-
-        <Box marginTop={1}>
-          <Text dimColor>
-            Learn more: <Link url="https://code.claude.com/docs/en/memory" />
-          </Text>
-        </Box>
       </Box>
     </Dialog>;
 }

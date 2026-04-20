@@ -20,6 +20,7 @@ import type { AutoUpdaterResult } from '../../utils/autoUpdater.js';
 import { getContextWindowForModel } from '../../utils/context.js';
 import { getLastInputTokens } from '../../bootstrap/state.js';
 import { getTotalInputTokens, getTotalOutputTokens, getTotalCost } from '../../cost-tracker.js';
+import { isTokenEconomyEnabled } from '../../utils/tokenEconomy.js';
 import { isFullscreenEnvEnabled } from '../../utils/fullscreen.js';
 import { type ModelName, renderModelName } from '../../utils/model/model.js';
 import { isUndercover } from '../../utils/undercover.js';
@@ -52,15 +53,24 @@ function buildTokenCounterText(model: ModelName): string {
 function TokenCounterBar(): React.ReactNode {
   const model = useMainLoopModel();
   const [text, setText] = useState(() => buildTokenCounterText(model));
+  const [teEnabled, setTeEnabled] = useState(() => isTokenEconomyEnabled());
   const modelRef = useRef(model);
   modelRef.current = model;
   useEffect(() => {
-    const update = () => setText(buildTokenCounterText(modelRef.current));
+    const update = () => {
+      setText(buildTokenCounterText(modelRef.current));
+      setTeEnabled(isTokenEconomyEnabled());
+    };
     update();
     const id = setInterval(update, 2000);
     return () => clearInterval(id);
   }, []);
-  return <Text dimColor wrap="truncate">{text}</Text>;
+  return (
+    <Box flexDirection="row" gap={1}>
+      <Text dimColor wrap="truncate">{text}</Text>
+      {teEnabled && <Text color="success" wrap="truncate">· economy</Text>}
+    </Box>
+  );
 }
 
 type Props = {
@@ -155,7 +165,7 @@ function PromptInputFooter({
   // coordinatorTaskCount === 0 covers the bash-only case (no agent rows
   // exist, pill is the only selectable item).
   const coordinatorTaskCount = useCoordinatorTaskCount();
-  const coordinatorTaskIndex = useAppState(s => s.coordinatorTaskIndex);
+  const coordinatorTaskIndex = useAppState((s: any) => s.coordinatorTaskIndex);
   const pillSelected = tasksSelected && (coordinatorTaskCount === 0 || coordinatorTaskIndex < 0);
 
   // Hide `? for shortcuts` if the user has a custom status line, or during ctrl-r
@@ -184,11 +194,11 @@ function PromptInputFooter({
         </Box>
         <Box flexShrink={1} gap={1}>
           {isFullscreen ? null : <Notifications apiKeyStatus={apiKeyStatus} autoUpdaterResult={autoUpdaterResult} debug={debug} isAutoUpdating={isAutoUpdating} verbose={verbose} messages={messages} onAutoUpdaterResult={onAutoUpdaterResult} onChangeIsUpdating={onChangeIsUpdating} ideSelection={ideSelection} mcpClients={mcpClients} isInputWrapped={isInputWrapped} isNarrow={isNarrow} />}
-          {"external" === 'ant' && isUndercover() && <Text dimColor>undercover</Text>}
+          {String("external") === 'ant' && isUndercover() && <Text dimColor>undercover</Text>}
           <BridgeStatusIndicator bridgeSelected={bridgeSelected} />
         </Box>
       </Box>
-      {"external" === 'ant' && <CoordinatorTaskPanel />}
+      {String("external") === 'ant' && <CoordinatorTaskPanel />}
     </>;
 }
 export default memo(PromptInputFooter);
@@ -229,3 +239,4 @@ function BridgeStatusIndicator({
       {bridgeSelected && <Text dimColor> · Enter to view</Text>}
     </Text>;
 }
+
