@@ -34,7 +34,6 @@ Arrumar estrtura do projeto parece que foi feito interamente por IA esta uma por
 Pendencia 
 - sessionMemoryEnabled
 - extractMemoriesEnabled estao consumindo muito token verificar se e bug ou background e resolver.
-- tirar provider ao entrar no openclaude nao faz sentido ter. ou verificar config do settings.json
 - incluir suporte ollama (context e pricing, se é assinatura ou pay as you go, verificar se tem effort tambem)
 
 ---
