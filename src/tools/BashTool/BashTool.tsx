@@ -26,6 +26,7 @@ import { truncate } from '../../utils/format.js';
 import { getFsImplementation } from '../../utils/fsOperations.js';
 import { lazySchema } from '../../utils/lazySchema.js';
 import { expandPath } from '../../utils/path.js';
+import { getPlatform } from '../../utils/platform.js';
 import type { PermissionResult } from '../../utils/permissions/PermissionResult.js';
 import { maybeRecordPluginHint } from '../../utils/plugins/hintRecommendation.js';
 import { exec } from '../../utils/Shell.js';
@@ -522,6 +523,27 @@ export const BashTool = buildTool({
     return `Running ${desc}`;
   },
   async validateInput(input: BashToolInput): Promise<ValidationResult> {
+    const platform = getPlatform();
+    if (platform === 'mac') {
+      const firstWord = input.command.trim().split(/\s+/)[0];
+      if (['apt', 'apt-get', 'yum', 'dpkg', 'pacman'].includes(firstWord || '')) {
+        return {
+          result: false,
+          message: `The command '${firstWord}' is not available on macOS. Please use macOS-compatible tools like 'brew'.`,
+          errorCode: 11
+        };
+      }
+    } else if (platform === 'windows') {
+      const firstWord = input.command.trim().split(/\s+/)[0];
+      if (['apt', 'apt-get', 'yum', 'dpkg', 'pacman', 'brew'].includes(firstWord || '')) {
+        return {
+          result: false,
+          message: `The command '${firstWord}' is typically not available on Windows. Please use Windows-compatible package managers like 'winget' or 'choco'.`,
+          errorCode: 11
+        };
+      }
+    }
+
     if (feature('MONITOR_TOOL') && !isBackgroundTasksDisabled && !input.run_in_background) {
       const sleepPattern = detectBlockedSleepPattern(input.command);
       if (sleepPattern !== null) {

@@ -1,9 +1,9 @@
-import { feature } from 'bun:bundle'
 import type {
   ContentBlockParam,
   ToolResultBlockParam,
   ToolUseBlock,
 } from '@anthropic-ai/sdk/resources/index.mjs'
+import { feature } from 'bun:bundle'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
@@ -35,8 +35,9 @@ import {
   type ToolProgressData,
   type ToolUseContext,
 } from '../../Tool.js'
-import type { BashToolInput } from '../../tools/BashTool/BashTool.js'
+import { getAllBaseTools } from '../../tools.js'
 import { startSpeculativeClassifierCheck } from '../../tools/BashTool/bashPermissions.js'
+import type { BashToolInput } from '../../tools/BashTool/BashTool.js'
 import { BASH_TOOL_NAME } from '../../tools/BashTool/toolName.js'
 import { FILE_EDIT_TOOL_NAME } from '../../tools/FileEditTool/constants.js'
 import { FILE_READ_TOOL_NAME } from '../../tools/FileReadTool/prompt.js'
@@ -48,7 +49,6 @@ import {
   isDeferredTool,
   TOOL_SEARCH_TOOL_NAME,
 } from '../../tools/ToolSearchTool/prompt.js'
-import { getAllBaseTools } from '../../tools.js'
 import type { HookProgress } from '../../types/hooks.js'
 import type {
   AssistantMessage,
@@ -59,6 +59,7 @@ import type {
 } from '../../types/message.js'
 import { count } from '../../utils/array.js'
 import { createAttachmentMessage } from '../../utils/attachments.js'
+import { writeAuditLog } from '../../utils/auditLog.js'
 import { logForDebugging } from '../../utils/debug.js'
 import {
   AbortError,
@@ -632,6 +633,16 @@ async function checkPermissionsAndCallTool(
     logForDebugging(
       `${tool.name} tool input error: ${errorContent.slice(0, 200)}`,
     )
+    writeAuditLog('tool_input_validation_error', {
+      toolName: tool.name,
+      data: {
+        input,
+        error: parsedInput.error.message,
+        errorDetails: errorContent.slice(0, 2000),
+        messageId,
+        requestId,
+      },
+    })
     logEvent('tengu_tool_use_error', {
       error:
         'InputValidationError' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -994,6 +1005,16 @@ async function checkPermissionsAndCallTool(
 
   if (permissionDecision.behavior !== 'allow') {
     logForDebugging(`${tool.name} tool permission denied`)
+    writeAuditLog('tool_permission_denied', {
+      toolName: tool.name,
+      data: {
+        input,
+        messageId,
+        requestId,
+        behavior: permissionDecision.behavior,
+        decisionReason: permissionDecision.decisionReason,
+      },
+    })
     const decisionInfo = toolUseContext.toolDecisions?.get(toolUseID)
     endToolBlockedOnUserSpan('reject', decisionInfo?.source || 'unknown')
     endToolSpan()

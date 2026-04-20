@@ -1,11 +1,7 @@
 // biome-ignore-all assist/source/organizeImports: internal-only import markers must not be reordered
-/**
- * Ensure that any model codenames introduced here are also added to
- * scripts/excluded-strings.txt to avoid leaking them. Wrap any codename string
- * literals with process.env.USER_TYPE === 'ant' for Bun to remove the codenames
- * during dead code elimination
- */
 import { getMainLoopModelOverride } from '../../bootstrap/state.js'
+import { LIGHTNING_BOLT } from '../../constants/figures.js'
+import { resolveMainLoopProvider } from '../../services/api/agentRouting.js'
 import {
   getSubscriptionType,
   isClaudeAISubscriber,
@@ -19,16 +15,14 @@ import {
   modelSupports1M,
 } from '../context.js'
 import { isEnvTruthy } from '../envUtils.js'
-import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
 import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
-import { getSettings_DEPRECATED } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
-import { getAPIProvider } from './providers.js'
-import { LIGHTNING_BOLT } from '../../constants/figures.js'
-import { isModelAllowed } from './modelAllowlist.js'
-import { type ModelAlias, isModelAlias } from './aliases.js'
+import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { capitalize } from '../stringUtils.js'
-import { resolveMainLoopProvider } from '../../services/api/agentRouting.js'
+import { type ModelAlias, isModelAlias } from './aliases.js'
+import { isModelAllowed } from './modelAllowlist.js'
+import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
+import { getAPIProvider } from './providers.js'
 
 export type ModelShortName = string
 export type ModelName = string
@@ -36,11 +30,23 @@ export type ModelSetting = ModelName | ModelAlias | null
 
 export function getSmallFastModel(): ModelName {
   if (process.env.ANTHROPIC_SMALL_FAST_MODEL) return process.env.ANTHROPIC_SMALL_FAST_MODEL
-  // For Gemini provider, use a fast model
+  
+  const settings = getSettings_DEPRECATED()
+  if (settings.agentRouting && settings.agentModels) {
+    const routing = settings.agentRouting
+    const fastModel = routing['haiku'] || routing['fast'] || routing['default'] || routing['general-purpose']
+    if (fastModel && settings.agentModels[fastModel]) {
+      return fastModel
+    }
+  }
+
+  if (settings.model) {
+    return parseUserSpecifiedModel(settings.model)
+  }
+
   if (getAPIProvider() === 'gemini') {
     return process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite'
   }
-  // For OpenAI provider, use OPENAI_MODEL or a sensible default
   if (getAPIProvider() === 'openai') {
     return process.env.OPENAI_MODEL || 'gpt-4o-mini'
   }
@@ -56,18 +62,6 @@ export function isNonCustomOpusModel(model: ModelName): boolean {
   )
 }
 
-/**
- * Helper to get the model from /model (including via /config), the --model flag, environment variable,
- * or the saved settings. The returned value can be a model alias if that's what the user specified.
- * Undefined if the user didn't configure anything, in which case we fall back to
- * the default (null).
- *
- * Priority order within this function:
- * 1. Model override during session (from /model command) - highest priority
- * 2. Model override at startup (from --model flag)
- * 3. ANTHROPIC_MODEL environment variable
- * 4. Settings (from user's saved settings)
- */
 export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
   let specifiedModel: ModelSetting | undefined
 
@@ -77,14 +71,11 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
   } else {
     const settings = getSettings_DEPRECATED() || {}
 
-    // Check agentRouting for "default" or "general-purpose" before regular settings.model
     const routingOverride = resolveMainLoopProvider(settings)
     if (routingOverride) {
       return routingOverride.model
     }
 
-    // Read the model env var that matches the active provider to prevent
-    // cross-provider leaks (e.g. ANTHROPIC_MODEL sent to the OpenAI API).
     const provider = getAPIProvider()
     specifiedModel =
       (provider === 'gemini' ? process.env.GEMINI_MODEL : undefined) ||
@@ -96,7 +87,6 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
       undefined
   }
 
-  // Ignore the user-specified model if it's not in the availableModels allowlist.
   if (specifiedModel && !isModelAllowed(specifiedModel)) {
     return undefined
   }
@@ -104,18 +94,7 @@ export function getUserSpecifiedModelSetting(): ModelSetting | undefined {
   return specifiedModel
 }
 
-/**
- * Get the main loop model to use for the current session.
- *
- * Model Selection Priority Order:
- * 1. Model override during session (from /model command) - highest priority
- * 2. Model override at startup (from --model flag)
- * 3. ANTHROPIC_MODEL environment variable
- * 4. Settings (from user's saved settings)
- * 5. Built-in default
- *
- * @returns The resolved model name to use
- */
+
 export function getMainLoopModel(): ModelName {
   const model = getUserSpecifiedModelSetting()
   if (model !== undefined && model !== null) {
@@ -128,83 +107,103 @@ export function getBestModel(): ModelName {
   return getDefaultOpusModel()
 }
 
-// @[MODEL LAUNCH]: Update the default Opus model (3P providers may lag so keep defaults unchanged).
 export function getDefaultOpusModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_OPUS_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_OPUS_MODEL
   }
-  // Gemini provider
+
+  const settings = getSettings_DEPRECATED()
+  if (settings.agentRouting && settings.agentModels) {
+    const routing = settings.agentRouting
+    const opusModel = routing['opus'] || routing['best'] || routing['default'] || routing['general-purpose']
+    if (opusModel && settings.agentModels[opusModel]) {
+      return opusModel
+    }
+  }
+
+  if (settings.model) {
+    return parseUserSpecifiedModel(settings.model)
+  }
+
   if (getAPIProvider() === 'gemini') {
     return process.env.GEMINI_MODEL || 'gemini-2.5-pro-preview-03-25'
   }
-  // OpenAI provider: use user-specified model or default
   if (getAPIProvider() === 'openai') {
     return process.env.OPENAI_MODEL || 'gpt-4o'
   }
-  // Codex provider: use user-specified model or default to gpt-5.4
   if (getAPIProvider() === 'codex') {
     return process.env.OPENAI_MODEL || 'gpt-5.4'
   }
-  // 3P providers (Bedrock, Vertex, Foundry) — kept as a separate branch
-  // even when values match, since 3P availability lags firstParty and
-  // these will diverge again at the next model launch.
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().opus46
+    return getModelStrings().opus41
   }
-  return getModelStrings().opus46
+  return getModelStrings().opus41
 }
 
-// @[MODEL LAUNCH]: Update the default Sonnet model (3P providers may lag so keep defaults unchanged).
 export function getDefaultSonnetModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_SONNET_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_SONNET_MODEL
   }
-  // Gemini provider
+
+  const settings = getSettings_DEPRECATED()
+  if (settings.agentRouting && settings.agentModels) {
+    const routing = settings.agentRouting
+    const sonnetModel = routing['sonnet'] || routing['default'] || routing['general-purpose']
+    if (sonnetModel && settings.agentModels[sonnetModel]) {
+      return sonnetModel
+    }
+  }
+
+  if (settings.model) {
+    return parseUserSpecifiedModel(settings.model)
+  }
+
   if (getAPIProvider() === 'gemini') {
     return process.env.GEMINI_MODEL || 'gemini-2.0-flash'
   }
-  // OpenAI provider
   if (getAPIProvider() === 'openai') {
     return process.env.OPENAI_MODEL || 'gpt-4o'
   }
-  // Codex provider
   if (getAPIProvider() === 'codex') {
     return process.env.OPENAI_MODEL || 'gpt-5.4'
   }
-  // Default to Sonnet 4.5 for 3P since they may not have 4.6 yet
   if (getAPIProvider() !== 'firstParty') {
-    return getModelStrings().sonnet45
+    return getModelStrings().sonnet37
   }
-  return getModelStrings().sonnet46
+  return getModelStrings().sonnet37
 }
 
-// @[MODEL LAUNCH]: Update the default Haiku model (3P providers may lag so keep defaults unchanged).
 export function getDefaultHaikuModel(): ModelName {
   if (process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL) {
     return process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL
   }
-  // Gemini provider
+
+  const settings = getSettings_DEPRECATED()
+  if (settings.agentRouting && settings.agentModels) {
+    const routing = settings.agentRouting
+    const haikuModel = routing['haiku'] || routing['fast'] || routing['default'] || routing['general-purpose']
+    if (haikuModel && settings.agentModels[haikuModel]) {
+      return haikuModel
+    }
+  }
+
+  if (settings.model) {
+    return parseUserSpecifiedModel(settings.model)
+  }
+
   if (getAPIProvider() === 'gemini') {
     return process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite'
   }
-  // OpenAI provider
   if (getAPIProvider() === 'openai') {
     return process.env.OPENAI_MODEL || 'gpt-4o-mini'
   }
-  // Codex provider
   if (getAPIProvider() === 'codex') {
     return process.env.OPENAI_MODEL || 'gpt-5.4'
   }
 
-  // Haiku 4.5 is available on all platforms (first-party, Foundry, Bedrock, Vertex)
-  return getModelStrings().haiku45
+  return getModelStrings().haiku35
 }
 
-/**
- * Get the model to use for runtime, depending on the runtime context.
- * @param params Subset of the runtime context to determine the model to use.
- * @returns The model to use
- */
 export function getRuntimeMainLoopModel(params: {
   permissionMode: PermissionMode
   mainLoopModel: string
@@ -212,51 +211,36 @@ export function getRuntimeMainLoopModel(params: {
 }): ModelName {
   const { permissionMode, mainLoopModel, exceeds200kTokens = false } = params
 
-  // opusplan uses Opus in plan mode without [1m] suffix.
-  if (
-    getUserSpecifiedModelSetting() === 'opusplan' &&
-    permissionMode === 'plan' &&
-    !exceeds200kTokens
-  ) {
-    return getDefaultOpusModel()
-  }
-
-  // sonnetplan by default
-  if (getUserSpecifiedModelSetting() === 'haiku' && permissionMode === 'plan') {
-    return getDefaultSonnetModel()
+  if (permissionMode === 'plan') {
+    const settings = getSettings_DEPRECATED()
+    const routingOverride = resolveMainLoopProvider(settings, 'plan')
+    const defaultRouting = resolveMainLoopProvider(settings)
+    
+    if (
+      routingOverride && 
+      routingOverride.model && 
+      (!defaultRouting || routingOverride.model !== defaultRouting.model)
+    ) {
+      return routingOverride.model
+    }
   }
 
   return mainLoopModel
 }
 
-/**
- * Get the default main loop model setting.
- *
- * This handles the built-in default:
- * - Opus for Max and Team Premium users
- * - Sonnet 4.6 for all other users (including Team Standard, Pro, Enterprise)
- *
- * @returns The default model setting to use
- */
 export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
-  // Gemini provider: always use the configured Gemini model
   if (getAPIProvider() === 'gemini') {
     return process.env.GEMINI_MODEL || 'gemini-2.0-flash'
   }
-  // OpenAI provider: always use the configured OpenAI model
   if (getAPIProvider() === 'openai') {
     return process.env.OPENAI_MODEL || 'gpt-4o'
   }
-  // GitHub provider: always use the configured GitHub model
   if (getAPIProvider() === 'github') {
     return process.env.OPENAI_MODEL || 'github:copilot'
   }
-  // Codex provider: always use the configured Codex model (default gpt-5.4)
   if (getAPIProvider() === 'codex') {
     return process.env.OPENAI_MODEL || 'gpt-5.4'
   }
-
-  // Ants default to defaultModel from flag config, or Opus 1M if not configured
   if (process.env.USER_TYPE === 'ant') {
     return (
       getAntModelOverrideConfig()?.defaultModel ??
@@ -264,40 +248,22 @@ export function getDefaultMainLoopModelSetting(): ModelName | ModelAlias {
     )
   }
 
-  // Max users get Opus as default
   if (isMaxSubscriber()) {
     return getDefaultOpusModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
 
-  // Team Premium gets Opus (same as Max)
   if (isTeamPremiumSubscriber()) {
     return getDefaultOpusModel() + (isOpus1mMergeEnabled() ? '[1m]' : '')
   }
-
-  // PAYG (1P and 3P), Enterprise, Team Standard, and Pro get Sonnet as default
-  // Note that PAYG (3P) may default to an older Sonnet model
   return getDefaultSonnetModel()
 }
 
-/**
- * Synchronous operation to get the default main loop model to use
- * (bypassing any user-specified values).
- */
 export function getDefaultMainLoopModel(): ModelName {
   return parseUserSpecifiedModel(getDefaultMainLoopModelSetting())
 }
 
-// @[MODEL LAUNCH]: Add a canonical name mapping for the new model below.
-/**
- * Pure string-match that strips date/provider suffixes from a first-party model
- * name. Input must already be a 1P-format ID (e.g. 'claude-3-7-sonnet-20250219',
- * 'us.anthropic.claude-opus-4-6-v1:0'). Does not touch settings, so safe at
- * module top-level (see MODEL_COSTS in modelCost.ts).
- */
 export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   name = name.toLowerCase()
-  // Special cases for Claude 4+ models to differentiate versions
-  // Order matters: check more specific versions first (4-5 before 4)
   if (name.includes('claude-opus-4-6')) {
     return 'claude-opus-4-6'
   }
@@ -322,7 +288,6 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   if (name.includes('claude-haiku-4-5')) {
     return 'claude-haiku-4-5'
   }
-  // Claude 3.x models use a different naming scheme (claude-3-{family})
   if (name.includes('claude-3-7-sonnet')) {
     return 'claude-3-7-sonnet'
   }
@@ -345,41 +310,30 @@ export function firstPartyNameToCanonical(name: ModelName): ModelShortName {
   if (match && match[1]) {
     return match[1]
   }
-  // Fall back to the original name if no pattern matches
   return name
 }
 
-/**
- * Maps a full model string to a shorter canonical version that's unified across 1P and 3P providers.
- * For example, 'claude-3-5-haiku-20241022' and 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
- * would both be mapped to 'claude-3-5-haiku'.
- * @param fullModelName The full model name (e.g., 'claude-3-5-haiku-20241022')
- * @returns The short name (e.g., 'claude-3-5-haiku') if found, or the original name if no mapping exists
- */
 export function getCanonicalName(fullModelName: ModelName): ModelShortName {
-  // Resolve overridden model IDs (e.g. Bedrock ARNs) back to canonical names.
-  // resolved is always a 1P-format ID, so firstPartyNameToCanonical can handle it.
   return firstPartyNameToCanonical(resolveOverriddenModel(fullModelName))
 }
 
-// @[MODEL LAUNCH]: Update the default model description strings shown to users.
 export function getClaudeAiUserDefaultModelDescription(
   fastMode = false,
 ): string {
   if (isMaxSubscriber() || isTeamPremiumSubscriber()) {
     if (isOpus1mMergeEnabled()) {
-      return `Opus 4.6 with 1M context · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
+      return `Opus 4.1 with 1M context · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
     }
-    return `Opus 4.6 · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
+    return `Opus 4.1 · Most capable for complex work${fastMode ? getOpus46PricingSuffix(true) : ''}`
   }
-  return 'Sonnet 4.6 · Best for everyday tasks'
+  return 'Sonnet 3.7 · Best for everyday tasks'
 }
 
 export function renderDefaultModelSetting(
   setting: ModelName | ModelAlias,
 ): string {
   if (setting === 'opusplan') {
-    return 'Opus 4.6 in plan mode, else Sonnet 4.6'
+    return 'Opus 4.1 in plan mode, else Sonnet 3.7'
   }
   return renderModelName(parseUserSpecifiedModel(setting))
 }

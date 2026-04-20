@@ -25,6 +25,8 @@ import { formatDuration, formatNumber } from '../../utils/format.js';
 import { buildSubagentLookups, createAssistantMessage, EMPTY_LOOKUPS } from '../../utils/messages.js';
 import type { ModelAlias } from '../../utils/model/aliases.js';
 import { getMainLoopModel, parseUserSpecifiedModel, renderModelName } from '../../utils/model/model.js';
+import { resolveAgentProvider } from '../../services/api/agentRouting.js';
+import { getSettingsWithSources } from '../../utils/settings/settings.js';
 import type { Theme, ThemeName } from '../../utils/theme.js';
 import type { outputSchema, Progress, RemoteLaunchedOutput } from './AgentTool.js';
 import { inputSchema } from './AgentTool.js';
@@ -425,17 +427,26 @@ export function renderToolUseTag(input: Partial<{
   prompt: string;
   subagent_type: string;
   model?: ModelAlias;
+  name?: string;
 }>): React.ReactNode {
   const tags: React.ReactNode[] = [];
-  if (input.model) {
-    const mainModel = getMainLoopModel();
-    const agentModel = parseUserSpecifiedModel(input.model);
-    if (agentModel !== mainModel) {
-      tags.push(<Box key="model" flexWrap="nowrap" marginLeft={1}>
-          <Text dimColor>{renderModelName(agentModel)}</Text>
-        </Box>);
-    }
+
+  const settings = getSettingsWithSources().effective;
+  const providerOverride = resolveAgentProvider(input.name, input.subagent_type, settings);
+  const mainModel = getMainLoopModel();
+  let agentModel: string | undefined;
+  if (providerOverride) {
+    agentModel = providerOverride.model;
+  } else if (input.model) {
+    agentModel = parseUserSpecifiedModel(input.model);
   }
+
+  if (agentModel && agentModel !== mainModel) {
+    tags.push(<Box key="model" flexWrap="nowrap" marginLeft={1}>
+        <Text dimColor>{renderModelName(agentModel)}</Text>
+      </Box>);
+  }
+
   if (tags.length === 0) {
     return null;
   }

@@ -91,10 +91,7 @@ const AgentJsonSchema = lazySchema(() =>
     initialPrompt: z.string().optional(),
     memory: z.enum(['user', 'project', 'local']).optional(),
     background: z.boolean().optional(),
-    isolation: (process.env.USER_TYPE === 'ant'
-      ? z.enum(['worktree', 'remote'])
-      : z.enum(['worktree'])
-    ).optional(),
+    isolation: z.enum(['worktree', 'remote']).optional(),
   }),
 )
 
@@ -473,6 +470,20 @@ export function parseAgentFromJson(
 
     const systemPrompt = parsed.prompt
 
+    type IsolationMode = 'worktree' | 'remote'
+    const VALID_ISOLATION_MODES: readonly IsolationMode[] =
+      process.env.USER_TYPE === 'ant' ? ['worktree', 'remote'] : ['worktree']
+    let isolation: IsolationMode | undefined
+    if (parsed.isolation) {
+      if (VALID_ISOLATION_MODES.includes(parsed.isolation as IsolationMode)) {
+        isolation = parsed.isolation as IsolationMode
+      } else {
+        logForDebugging(
+          `Agent '${name}' from JSON has invalid isolation value '${parsed.isolation}'. Valid options: ${VALID_ISOLATION_MODES.join(', ')}`,
+        )
+      }
+    }
+
     const agent: CustomAgentDefinition = {
       agentType: name,
       whenToUse: parsed.description,
@@ -503,7 +514,7 @@ export function parseAgentFromJson(
       ...(parsed.initialPrompt ? { initialPrompt: parsed.initialPrompt } : {}),
       ...(parsed.background ? { background: parsed.background } : {}),
       ...(parsed.memory ? { memory: parsed.memory } : {}),
-      ...(parsed.isolation ? { isolation: parsed.isolation } : {}),
+      ...(isolation ? { isolation } : {}),
     }
 
     return agent
