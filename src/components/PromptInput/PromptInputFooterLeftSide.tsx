@@ -41,6 +41,8 @@ import { useHasSelection, useSelection } from '../../ink/hooks/use-selection.js'
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
 import { getPlatform } from '../../utils/platform.js';
 import { PrBadge } from '../PrBadge.js';
+import { getSettingsWithSources } from '../../utils/settings/settings.js';
+import { resolveMainLoopProvider } from '../../services/api/agentRouting.js';
 
 // Dead code elimination: conditional import for proactive mode
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -345,9 +347,20 @@ function ModeIndicator({
   // the local permission mode shown here doesn't reflect the agent's state.
   // Rendered before the tasks pill so a long pill label (e.g. ultraplan URL)
   // doesn't push the mode indicator off-screen.
+  const planRouteModel = currentMode === 'plan' ? (() => {
+    const { effective: settings } = getSettingsWithSources()
+    const planOverride = resolveMainLoopProvider(settings ?? null, 'plan')
+    const defaultOverride = resolveMainLoopProvider(settings ?? null)
+    // Only show model name if plan routing differs from default (or has dedicated Plan route)
+    if (planOverride && settings?.agentRouting?.['Plan'] && planOverride.model !== defaultOverride?.model) {
+      return planOverride.model
+    }
+    return null
+  })() : null;
   const modePart = currentMode && hasActiveMode && !getIsRemoteMode() ? <Text color={getModeColor(currentMode)} key="mode">
         {permissionModeSymbol(currentMode)}{' '}
         {permissionModeTitle(currentMode).toLowerCase()} on
+        {planRouteModel && <Text dimColor> · {planRouteModel}</Text>}
         {shouldShowModeHint && <Text dimColor>
             {' '}
             <KeyboardShortcutHint shortcut={modeCycleShortcut} action="cycle" parens />
