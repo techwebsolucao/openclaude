@@ -11,6 +11,11 @@ import { isEnvTruthy } from '../../utils/envUtils.js'
 import { hasExactErrorMessage } from '../../utils/errors.js'
 import type { CacheSafeParams } from '../../utils/forkedAgent.js'
 import { logError } from '../../utils/log.js'
+import {
+    isTokenEconomyEnabled,
+    getTokenEconomyAutocompactBufferTokens,
+    getTokenEconomyCompactMaxOutputTokens,
+} from '../../utils/tokenEconomy.js'
 
 import { tokenCountWithEstimation } from '../../utils/tokens.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
@@ -34,7 +39,7 @@ const MAX_OUTPUT_TOKENS_FOR_SUMMARY = 20_000
 export function getEffectiveContextWindowSize(model: string): number {
   const reservedTokensForSummary = Math.min(
     getMaxOutputTokensForModel(model),
-    MAX_OUTPUT_TOKENS_FOR_SUMMARY,
+    getTokenEconomyCompactMaxOutputTokens() ?? MAX_OUTPUT_TOKENS_FOR_SUMMARY,
   )
   let contextWindow = getContextWindowForModel(model, getSdkBetas())
 
@@ -75,7 +80,7 @@ export function getAutoCompactThreshold(model: string): number {
 
   const autocompactThreshold =
     effectiveContextWindow -
-    AUTOCOMPACT_BUFFER_TOKENS
+    (getTokenEconomyAutocompactBufferTokens() ?? AUTOCOMPACT_BUFFER_TOKENS)
 
   // Override for easier testing of autocompact
   const envPercent = process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
@@ -154,6 +159,13 @@ export function isAutoCompactEnabled(): boolean {
   if (isEnvTruthy(process.env.DISABLE_AUTO_COMPACT)) {
     return false
   }
+  
+  // If token economy is enabled, auto-compact is implicitly enabled
+  // unless explicitly disabled via environment variables.
+  if (isTokenEconomyEnabled()) {
+    return true
+  }
+
   // Check if user has disabled auto-compact in their settings
   const userConfig = getGlobalConfig()
   return userConfig.autoCompactEnabled

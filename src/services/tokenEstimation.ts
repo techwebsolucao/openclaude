@@ -210,11 +210,19 @@ export async function countMessagesTokensWithAPI(
   })
 }
 
+import {
+    isTokenEconomyEnabled,
+    getTokenEconomyTokenEstimationPadding,
+} from '../utils/tokenEconomy.js'
+
 export function roughTokenCountEstimation(
   content: string,
   bytesPerToken: number = 4,
 ): number {
-  return Math.round(content.length / bytesPerToken)
+  const padding = isTokenEconomyEnabled() 
+    ? (getTokenEconomyTokenEstimationPadding() ?? 1.15)
+    : 1
+  return Math.round((content.length / bytesPerToken) * padding)
 }
 
 /**

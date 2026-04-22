@@ -27,3 +27,43 @@ export function isTokenEconomyEnabled(): boolean {
   return config.tokenEconomyEnabled
 }
 
+export function getTokenEconomyConfig() {
+  const config = getGlobalConfig()
+  return config.tokenEconomyConfig
+}
+
+export function getTokenEconomyContextWindowFraction(): number {
+  return getTokenEconomyConfig()?.contextWindowFraction ?? 0.5
+}
+
+export function getTokenEconomyAutocompactBufferTokens(): number | undefined {
+  return getTokenEconomyConfig()?.autocompactBufferTokens
+}
+
+export function getTokenEconomyCompactMaxOutputTokens(): number | undefined {
+  return getTokenEconomyConfig()?.compactMaxOutputTokens
+}
+
+export function getTokenEconomyMaxResultSizeChars(): number | undefined {
+  return getTokenEconomyConfig()?.maxResultSizeChars
+}
+
+export function getTokenEconomyMaxToolResultsPerMessage(): number | undefined {
+  return getTokenEconomyConfig()?.maxToolResultsPerMessage
+}
+
+export function getTokenEconomyTokenEstimationPadding(): number | undefined {
+  return getTokenEconomyConfig()?.tokenEstimationPadding
+}
+
+export function getTokenEconomySkipPrefetches(): boolean | undefined {
+  return getTokenEconomyConfig()?.skipPrefetches
+}
+
+export function getTokenEconomySkipMemoryInstructions(): boolean | undefined {
+  return getTokenEconomyConfig()?.skipMemoryInstructions
+}
+
+export function getTokenEconomyMaxUserContextChars(): number | undefined {
+  return getTokenEconomyConfig()?.maxUserContextChars
+}

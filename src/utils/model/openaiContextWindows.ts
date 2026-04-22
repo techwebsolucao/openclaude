@@ -72,6 +72,7 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
   'llama3.2:1b':              128_000,
   'qwen3:8b':                 128_000,
   'qwen3-coder-next:cloud':    256_000,
+  'qwen3-coder:480b-cloud':   256_000,
   'qwen3.5-397b-a17b':        262_144,
   'minimax-m2.7:cloud':       200_000,
   'codestral':                 32_768,

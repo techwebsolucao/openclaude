@@ -6,6 +6,10 @@ import type {
 import type { CanUseToolFn } from './hooks/useCanUseTool.js'
 import { FallbackTriggeredError } from './services/api/withRetry.js'
 import {
+    isTokenEconomyEnabled,
+    getTokenEconomySkipPrefetches,
+} from './utils/tokenEconomy.js'
+import {
     calculateTokenWarningState,
     isAutoCompactEnabled,
     type AutoCompactTrackingState,
@@ -297,10 +301,12 @@ async function* queryLoop(
   // so per-iteration firing would ask sideQuery the same question N times.
   // Consume point polls settledAt (never blocks). `using` disposes on all
   // generator exit paths — see MemoryPrefetch for dispose/telemetry semantics.
-  using pendingMemoryPrefetch = startRelevantMemoryPrefetch(
-    state.messages,
-    state.toolUseContext,
-  )
+  using pendingMemoryPrefetch = (isTokenEconomyEnabled() && getTokenEconomySkipPrefetches())
+    ? undefined
+    : startRelevantMemoryPrefetch(
+        state.messages,
+        state.toolUseContext,
+      )
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -327,11 +333,13 @@ async function* queryLoop(
     // nothing in prod). Turn-0 user-input discovery still blocks in
     // userInputAttachments — that's the one signal where there's no prior
     // work to hide under.
-    const pendingSkillPrefetch = skillPrefetch?.startSkillDiscoveryPrefetch(
-      null,
-      messages,
-      toolUseContext,
-    )
+    const pendingSkillPrefetch = (isTokenEconomyEnabled() && getTokenEconomySkipPrefetches())
+      ? undefined
+      : skillPrefetch?.startSkillDiscoveryPrefetch(
+          null,
+          messages,
+          toolUseContext,
+        )
 
     yield { type: 'stream_request_start' }
 

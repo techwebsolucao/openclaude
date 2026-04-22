@@ -6,7 +6,10 @@ import { getCanonicalName } from './model/model.js'
 import { resolveAntModel } from './model/antModels.js'
 import { getModelCapability } from './model/modelCapabilities.js'
 import { getOpenAIContextWindow, getOpenAIMaxOutputTokens } from './model/openaiContextWindows.js'
-import { isTokenEconomyEnabled } from './tokenEconomy.js'
+import {
+    isTokenEconomyEnabled,
+    getTokenEconomyContextWindowFraction,
+} from './tokenEconomy.js'
 
 // Model context window size (200k tokens for all models right now)
 export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
@@ -75,15 +78,9 @@ function _getContextWindowForModel(
   }
 
   // OpenAI-compatible provider — use known context windows for the model
-  if (
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_GEMINI) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_GITHUB)
-  ) {
-    const openaiWindow = getOpenAIContextWindow(model)
-    if (openaiWindow !== undefined) {
-      return openaiWindow
-    }
+  const openaiWindow = getOpenAIContextWindow(model)
+  if (openaiWindow !== undefined) {
+    return openaiWindow
   }
 
   const cap = getModelCapability(model)
@@ -121,7 +118,7 @@ export function getContextWindowForModel(
 ): number {
   const contextWindow = _getContextWindowForModel(model, betas)
   if (isTokenEconomyEnabled()) {
-    return Math.floor(contextWindow / 2)
+    return Math.floor(contextWindow * getTokenEconomyContextWindowFraction())
   }
   return contextWindow
 }

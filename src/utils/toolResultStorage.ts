@@ -43,6 +43,12 @@ export const TOOL_RESULT_CLEARED_MESSAGE = '[Old tool result content cleared]'
  */
 const PERSIST_THRESHOLD_OVERRIDE_FLAG = 'tengu_satin_quoll'
 
+import {
+    isTokenEconomyEnabled,
+    getTokenEconomyMaxResultSizeChars,
+    getTokenEconomyMaxToolResultsPerMessage,
+} from './tokenEconomy.js'
+
 /**
  * Resolve the effective persistence threshold for a tool.
  * GrowthBook override wins when present; otherwise falls back to the declared
@@ -75,7 +81,13 @@ export function getPersistenceThreshold(
   ) {
     return override
   }
-  return Math.min(declaredMaxResultSizeChars, DEFAULT_MAX_RESULT_SIZE_CHARS)
+  
+  const tokenEconomyLimit = getTokenEconomyMaxResultSizeChars()
+  const defaultLimit = isTokenEconomyEnabled() 
+    ? (tokenEconomyLimit ?? 20_000)
+    : DEFAULT_MAX_RESULT_SIZE_CHARS
+
+  return Math.min(declaredMaxResultSizeChars, defaultLimit)
 }
 
 // Result of persisting a tool result to disk
@@ -431,6 +443,12 @@ export function getPerMessageBudgetLimit(): number {
   ) {
     return override
   }
+  
+  const tokenEconomyLimit = getTokenEconomyMaxToolResultsPerMessage()
+  if (isTokenEconomyEnabled()) {
+    return tokenEconomyLimit ?? 80_000
+  }
+
   return MAX_TOOL_RESULTS_PER_MESSAGE_CHARS
 }
 

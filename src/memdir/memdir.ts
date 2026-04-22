@@ -417,7 +417,16 @@ export function buildSearchingPastContextSection(autoMemDir: string): string[] {
  * Returns null when auto memory is disabled.
  */
 
+import {
+    isTokenEconomyEnabled,
+    getTokenEconomySkipMemoryInstructions,
+} from '../utils/tokenEconomy.js'
+
 export async function loadMemoryPrompt(): Promise<string | null> {
+  if (isTokenEconomyEnabled() && getTokenEconomySkipMemoryInstructions()) {
+    return null
+  }
+
   const autoEnabled = isAutoMemoryEnabled()
 
   const skipIndex = getFeatureValue_CACHED_MAY_BE_STALE(
