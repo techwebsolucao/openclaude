@@ -61,7 +61,11 @@ export function getTokenEconomySkipPrefetches(): boolean | undefined {
 }
 
 export function getTokenEconomySkipMemoryInstructions(): boolean | undefined {
-  return getTokenEconomyConfig()?.skipMemoryInstructions
+  const value = getTokenEconomyConfig()?.skipMemoryInstructions
+  if (value === undefined && isTokenEconomyEnabled()) {
+    return true
+  }
+  return value
 }
 
 export function getTokenEconomyMaxUserContextChars(): number | undefined {

@@ -376,6 +376,14 @@ export function buildSearchingPastContextSection(autoMemDir: string): string[] {
   if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_coral_fern', false)) {
     return []
   }
+
+  // In token economy mode, we want to avoid encouraging the model to search
+  // through large historical transcripts as it often leads to context bloat
+  // and pulling in irrelevant information from past sessions.
+  if (isTokenEconomyEnabled()) {
+    return []
+  }
+
   const projectDir = getProjectDir(getOriginalCwd())
   // Ant-native builds alias grep to embedded ugrep and remove the dedicated
   // Grep tool, so give the model a real shell invocation there.
