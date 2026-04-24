@@ -86,12 +86,31 @@ export function parsePromptTooLongTokenCounts(rawMessage: string): {
   actualTokens: number | undefined
   limitTokens: number | undefined
 } {
-  const match = rawMessage.match(
+  // Anthropic format: "prompt is too long: 137500 tokens > 135000 maximum"
+  const anthropicMatch = rawMessage.match(
     /prompt is too long[^0-9]*(\d+)\s*tokens?\s*>\s*(\d+)/i,
   )
+  if (anthropicMatch) {
+    return {
+      actualTokens: parseInt(anthropicMatch[1]!, 10),
+      limitTokens: parseInt(anthropicMatch[2]!, 10),
+    }
+  }
+
+  // OpenAI format: "This model's maximum context length is 128000 tokens. However, your messages resulted in 137500 tokens."
+  const openaiMatch = rawMessage.match(
+    /maximum context length is (\d+) tokens.*?resulted in (\d+) tokens/i,
+  )
+  if (openaiMatch) {
+    return {
+      actualTokens: parseInt(openaiMatch[2]!, 10),
+      limitTokens: parseInt(openaiMatch[1]!, 10),
+    }
+  }
+
   return {
-    actualTokens: match ? parseInt(match[1]!, 10) : undefined,
-    limitTokens: match ? parseInt(match[2]!, 10) : undefined,
+    actualTokens: undefined,
+    limitTokens: undefined,
   }
 }
 
@@ -569,9 +588,14 @@ export function getAssistantMessageFromError(
 
   // Handle prompt too long errors (Vertex returns 413, direct API returns 400)
   // Use case-insensitive check since Vertex returns "Prompt is too long" (capitalized)
+  const lowerMsg = error instanceof Error ? error.message.toLowerCase() : ''
   if (
     error instanceof Error &&
-    error.message.toLowerCase().includes('prompt is too long')
+    (lowerMsg.includes('prompt is too long') ||
+      lowerMsg.includes('maximum context length') ||
+      lowerMsg.includes('context length exceeded') ||
+      (lowerMsg.includes('context length') && lowerMsg.includes('exceeded')) ||
+      lowerMsg.includes('context window is too large'))
   ) {
     // Content stays generic (UI matches on exact string). The raw error with
     // token counts goes into errorDetails — reactive compact's retry loop
@@ -1030,11 +1054,14 @@ export function classifyAPIError(error: unknown): string {
   }
 
   // Prompt/content size errors
+  const lowerMsg = error instanceof Error ? error.message.toLowerCase() : ''
   if (
     error instanceof Error &&
-    error.message
-      .toLowerCase()
-      .includes(PROMPT_TOO_LONG_ERROR_MESSAGE.toLowerCase())
+    (lowerMsg.includes(PROMPT_TOO_LONG_ERROR_MESSAGE.toLowerCase()) ||
+      lowerMsg.includes('maximum context length') ||
+      lowerMsg.includes('context length exceeded') ||
+      (lowerMsg.includes('context length') && lowerMsg.includes('exceeded')) ||
+      lowerMsg.includes('context window is too large'))
   ) {
     return 'prompt_too_long'
   }

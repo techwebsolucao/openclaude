@@ -395,6 +395,8 @@ export function shouldFilterSuggestion(
       () =>
         lower.startsWith('api error:') ||
         lower.startsWith('prompt is too long') ||
+        lower.startsWith('maximum context length') ||
+        lower.startsWith('context length exceeded') ||
         lower.startsWith('request timed out') ||
         lower.startsWith('invalid api key') ||
         lower.startsWith('image was too large'),

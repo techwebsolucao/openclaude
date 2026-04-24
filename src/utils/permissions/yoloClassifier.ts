@@ -1572,7 +1572,14 @@ function detectPromptTooLong(
   error: unknown,
 ): ReturnType<typeof parsePromptTooLongTokenCounts> | undefined {
   if (!(error instanceof Error)) return undefined
-  if (!error.message.toLowerCase().includes('prompt is too long')) {
+  const lowerMsg = error.message.toLowerCase()
+  if (
+    !lowerMsg.includes('prompt is too long') &&
+    !lowerMsg.includes('maximum context length') &&
+    !lowerMsg.includes('context length exceeded') &&
+    !(lowerMsg.includes('context length') && lowerMsg.includes('exceeded')) &&
+    !lowerMsg.includes('context window is too large')
+  ) {
     return undefined
   }
   return parsePromptTooLongTokenCounts(error.message)
