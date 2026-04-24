@@ -76,6 +76,7 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
   'qwen3.5-397b-a17b':        262_144,
   'glm-5.1:cloud':             256_000,
   'deepseek-v3.2:cloud': 160_000,
+  'deepseek-v4-flash:cloud': 1_000_000,
   'kimi-k2.6:cloud':          256_000,
   'minimax-m2.7:cloud':       200_000,
   'codestral':                 32_768,
