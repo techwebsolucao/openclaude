@@ -82,6 +82,9 @@ export function getAutoCompactThreshold(model: string): number {
     effectiveContextWindow -
     (getTokenEconomyAutocompactBufferTokens() ?? AUTOCOMPACT_BUFFER_TOKENS)
 
+  const ninetyPercentThreshold = Math.floor(effectiveContextWindow * 0.90)
+  const baseThreshold = Math.min(autocompactThreshold, ninetyPercentThreshold)
+
   // Override for easier testing of autocompact
   const envPercent = process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
   if (envPercent) {
@@ -90,11 +93,11 @@ export function getAutoCompactThreshold(model: string): number {
       const percentageThreshold = Math.floor(
         effectiveContextWindow * (parsed / 100),
       )
-      return Math.min(percentageThreshold, autocompactThreshold)
+      return Math.min(percentageThreshold, baseThreshold)
     }
   }
 
-  return autocompactThreshold
+  return baseThreshold
 }
 
 export function calculateTokenWarningState(
@@ -159,16 +162,16 @@ export function isAutoCompactEnabled(): boolean {
   if (isEnvTruthy(process.env.DISABLE_AUTO_COMPACT)) {
     return false
   }
-  
-  // If token economy is enabled, auto-compact is implicitly enabled
-  // unless explicitly disabled via environment variables.
-  if (isTokenEconomyEnabled()) {
-    return true
+
+  // Check if user has explicitly disabled auto-compact in their settings
+  const userConfig = getGlobalConfig()
+  if (userConfig.autoCompactEnabled === false) {
+    return false
   }
 
-  // Check if user has disabled auto-compact in their settings
-  const userConfig = getGlobalConfig()
-  return userConfig.autoCompactEnabled
+  // Always enable auto-compact by default, even if token economy is off,
+  // to prevent exceeding the context window.
+  return true
 }
 
 export async function shouldAutoCompact(
