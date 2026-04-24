@@ -3217,8 +3217,8 @@ function getPlanModeV2Instructions(attachment: {
     return []
   }
 
-  // When interview phase is enabled, use the iterative workflow.
-  if (isPlanModeInterviewPhaseEnabled()) {
+  // When interview phase is enabled or explore/plan agents are disabled, use the iterative workflow.
+  if (isPlanModeInterviewPhaseEnabled() || !areExplorePlanAgentsEnabled()) {
     return getPlanModeInterviewInstructions(attachment)
   }
 
