@@ -32,7 +32,7 @@ export function useQueueProcessor({
 }: UseQueueProcessorParams): void {
   // Subscribe to the query guard. Re-renders when a query starts or ends
   // (or when reserve/cancelReservation transitions dispatching state).
-  const isQueryActive = useSyncExternalStore(
+  const queryStatus = useSyncExternalStore(
     queryGuard.subscribe,
     queryGuard.getSnapshot,
   )
@@ -46,7 +46,7 @@ export function useQueueProcessor({
   )
 
   useEffect(() => {
-    if (isQueryActive) return
+    if (queryStatus !== 'idle') return
     if (hasActiveLocalJsxUI) return
     if (queueSnapshot.length === 0) return
 
@@ -54,13 +54,13 @@ export function useQueueProcessor({
     // try block). The sync chain executeQueuedInput → handlePromptSubmit →
     // executeUserInput → queryGuard.reserve() runs before the first real await,
     // so by the time React re-runs this effect (due to the dequeue-triggered
-    // snapshot change), isQueryActive is already true (dispatching) and the
+    // snapshot change), queryStatus is already 'dispatching' and the
     // guard above returns early. handlePromptSubmit's finally releases the
     // reservation via cancelReservation() (no-op if onQuery already ran end()).
     processQueueIfReady({ executeInput: executeQueuedInput })
   }, [
     queueSnapshot,
-    isQueryActive,
+    queryStatus,
     executeQueuedInput,
     hasActiveLocalJsxUI,
     queryGuard,

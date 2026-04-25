@@ -139,9 +139,9 @@ export class QueryGuard {
   /** Subscribe to state changes. Stable reference — safe as useEffect dep. */
   subscribe = this._changed.subscribe
 
-  /** Snapshot for useSyncExternalStore. Returns `isActive`. */
-  getSnapshot = (): boolean => {
-    return this._status !== 'idle'
+  /** Snapshot for useSyncExternalStore. Returns current status. */
+  getSnapshot = (): 'idle' | 'dispatching' | 'running' | 'settling' => {
+    return this._status
   }
 
   private _notify(): void {

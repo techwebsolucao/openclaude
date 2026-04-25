@@ -900,9 +900,9 @@ export function REPL({
   // batched) and isQueryRunning (ref, sync) could desync. See QueryGuard.ts.
   const queryGuard = React.useRef(new QueryGuard()).current;
 
-  // Subscribe to the guard — true during dispatching or running.
-  // This is the single source of truth for "is a local query in flight".
-  const isQueryActive = React.useSyncExternalStore(queryGuard.subscribe, queryGuard.getSnapshot);
+  // Subscribe to the guard status.
+  // This is the single source of truth for the local query lifecycle.
+  const queryStatus = React.useSyncExternalStore(queryGuard.subscribe, queryGuard.getSnapshot);
 
   // Separate loading flag for operations outside the local query guard:
   // remote sessions (useRemoteSession / useDirectConnect) and foregrounded
@@ -914,7 +914,7 @@ export function REPL({
   // Derived: any loading source active. Read-only — no setter. Local query
   // loading is driven by queryGuard (reserve/tryStart/end/cancelReservation),
   // external loading by setIsExternalLoading.
-  const isLoading = isQueryActive || isExternalLoading;
+  const isLoading = queryStatus !== 'idle' || isExternalLoading;
 
   // Elapsed time is computed by SpinnerWithVerb from these refs on each
   // animation frame, avoiding a useInterval that re-renders the entire REPL.
@@ -939,19 +939,20 @@ export function REPL({
     pauseStartTimeRef.current = null;
   }, []);
 
-  // Reset timing refs inline when isQueryActive transitions false→true.
+  // Reset timing refs inline when queryStatus transitions idle→active.
   // queryGuard.reserve() (in executeUserInput) fires BEFORE processUserInput's
   // first await, but the ref reset in onQuery's try block runs AFTER. During
   // that gap, React renders the spinner with loadingStartTimeRef=0, computing
   // elapsedTimeMs = Date.now() - 0 ≈ 56 years. This inline reset runs on the
-  // first render where isQueryActive is observed true — the same render that
+  // first render where queryStatus is observed active — the same render that
   // first shows the spinner — so the ref is correct by the time the spinner
   // reads it. See INC-4549.
   const wasQueryActiveRef = React.useRef(false);
-  if (isQueryActive && !wasQueryActiveRef.current) {
+  const isQueryActiveCurrent = queryStatus !== 'idle';
+  if (isQueryActiveCurrent && !wasQueryActiveRef.current) {
     resetTimingRefs();
   }
-  wasQueryActiveRef.current = isQueryActive;
+  wasQueryActiveRef.current = isQueryActiveCurrent;
 
   // Wrapper for setIsExternalLoading that resets timing refs on transition
   // to true — SpinnerWithVerb reads these for elapsed time, so they must be
@@ -3563,7 +3564,7 @@ export function REPL({
     // isLoading is read at the !isLoading checks above for input-clearing
     // and submitCount gating. It's derived from isQueryActive || isExternalLoading,
     // so including it here ensures the closure captures the fresh value.
-    isLoading, isExternalLoading, inputMode, commands, setInputValue, setInputMode, setPastedContents, setSubmitCount, setIDESelection, setToolJSX, getToolUseContext,
+    isLoading, queryStatus, isExternalLoading, inputMode, commands, setInputValue, setInputMode, setPastedContents, setSubmitCount, setIDESelection, setToolJSX, getToolUseContext,
     // messages is read via messagesRef.current inside the callback to
     // keep onSubmit stable across message updates (see L2384/L2400/L2662).
     // Without this, each setMessages call (~30× per turn) recreates
@@ -3900,7 +3901,7 @@ export function REPL({
       setPastedContents: () => { },
       setToolJSX,
       getToolUseContext,
-      messages,
+      messages: messagesRef.current,
       mainLoopModel,
       ideSelection,
       setUserInputOnProcessing,
@@ -3914,7 +3915,7 @@ export function REPL({
       setMessages,
       queuedCommands
     });
-  }, [queryGuard, commands, setToolJSX, getToolUseContext, messages, mainLoopModel, ideSelection, setUserInputOnProcessing, canUseTool, setAbortController, onQuery, addNotification, setAppState, onBeforeQuery]);
+  }, [queryGuard, commands, setToolJSX, getToolUseContext, mainLoopModel, ideSelection, setUserInputOnProcessing, canUseTool, setAbortController, onQuery, addNotification, setAppState, onBeforeQuery]);
   useQueueProcessor({
     executeQueuedInput,
     hasActiveLocalJsxUI: isShowingLocalJSXCommand,

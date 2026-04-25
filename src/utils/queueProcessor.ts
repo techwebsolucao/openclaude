@@ -65,15 +65,16 @@ export function processQueueIfReady({
     return { processed: false }
   }
 
-  // Slash commands and bash-mode commands are processed individually.
+  // Slash commands, bash-mode, and prompt-mode commands are processed individually.
   // Bash commands need per-command error isolation, exit codes, and progress UI.
-  if (isSlashCommand(next) || next.mode === 'bash') {
+  // Prompt commands should be processed sequentially so the assistant replies to each.
+  if (isSlashCommand(next) || next.mode === 'bash' || next.mode === 'prompt') {
     const cmd = dequeue(isMainThread)!
     void executeInput([cmd])
     return { processed: true }
   }
 
-  // Drain all non-slash-command items with the same mode at once.
+  // Drain all other items (like task-notifications) with the same mode at once.
   const targetMode = next.mode
   const commands = dequeueAllMatching(
     cmd => isMainThread(cmd) && !isSlashCommand(cmd) && cmd.mode === targetMode,
