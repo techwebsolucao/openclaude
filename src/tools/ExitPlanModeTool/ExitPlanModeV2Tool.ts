@@ -394,7 +394,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       }
       return {
         ...prev,
-        mainLoopModelForSession: undefined,
+        mainLoopModelForSession: null,
         toolPermissionContext: {
           ...baseContext,
           mode: restoreMode,
