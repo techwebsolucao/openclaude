@@ -60,6 +60,8 @@ type Props = {
   hidePill?: boolean;
   /** Force-hide the sticky prompt header (e.g. viewing a teammate task). */
   hideSticky?: boolean;
+  /** Content rendered at the very top, above sticky header and scroll area. */
+  top?: ReactNode;
   /** Count for the pill text. 0 → "Jump to bottom", >0 → "N new messages". */
   newMessageCount?: number;
   /** Called when the user clicks the "N new" pill. */
@@ -280,6 +282,7 @@ export function FullscreenLayout(t0) {
     dividerYRef,
     hidePill: t1,
     hideSticky: t2,
+    top,
     newMessageCount: t3,
     onPillClick
   } = t0;
@@ -388,12 +391,13 @@ export function FullscreenLayout(t0) {
       t13 = $[23];
     }
     let t14;
-    if ($[24] !== t11 || $[25] !== t12 || $[26] !== t13 || $[27] !== t8) {
-      t14 = <Box flexGrow={1} flexDirection="column" overflow="hidden">{t8}{t11}{t12}{t13}</Box>;
+    if ($[24] !== t11 || $[25] !== t12 || $[26] !== t13 || $[27] !== t8 || $[46] !== top) {
+      t14 = <Box flexGrow={1} flexDirection="column" overflow="hidden">{top}{t8}{t11}{t12}{t13}</Box>;
       $[24] = t11;
       $[25] = t12;
       $[26] = t13;
       $[27] = t8;
+      $[46] = top;
       $[28] = t14;
     } else {
       t14 = $[28];
@@ -445,15 +449,16 @@ export function FullscreenLayout(t0) {
     return t19;
   }
   let t8;
-  if ($[42] !== bottom || $[43] !== modal || $[44] !== overlay || $[45] !== scrollable) {
-    t8 = <>{scrollable}{bottom}{overlay}{modal}</>;
+  if ($[42] !== bottom || $[43] !== modal || $[44] !== overlay || $[45] !== scrollable || $[47] !== top) {
+    t8 = <>{top}{scrollable}{bottom}{overlay}{modal}</>;
     $[42] = bottom;
     $[43] = modal;
     $[44] = overlay;
     $[45] = scrollable;
-    $[46] = t8;
+    $[47] = top;
+    $[48] = t8;
   } else {
-    t8 = $[46];
+    t8 = $[48];
   }
   return t8;
 }

@@ -56,6 +56,7 @@ import { ElicitationDialog } from '../components/mcp/ElicitationDialog.js';
 import { PromptDialog } from '../components/hooks/PromptDialog.js';
 import type { PromptRequest, PromptResponse } from '../types/hooks.js';
 import PromptInput from '../components/PromptInput/PromptInput.js';
+import { MainLoopStatusHeader } from '../components/MainLoopStatusHeader.js';
 import { PromptInputQueuedCommands } from '../components/PromptInput/PromptInputQueuedCommands.js';
 import { useRemoteSession } from '../hooks/useRemoteSession.js';
 import { useDirectConnect } from '../hooks/useDirectConnect.js';
@@ -4454,7 +4455,7 @@ export function REPL({
           // gets yellow. Next n/N re-establishes via step()→jump().
           onScroll={() => jumpRef.current?.disarmSearch()} /> : null}
       <CancelRequestHandler {...cancelRequestProps} />
-      {transcriptScrollRef ? <FullscreenLayout scrollRef={scrollRef} scrollable={<>
+      {transcriptScrollRef ? <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} scrollable={<>
         {transcriptMessagesElement}
         {transcriptToolJSX}
         <SandboxViolationExpandedView />
@@ -4590,13 +4591,12 @@ export function REPL({
     {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
     <CancelRequestHandler {...cancelRequestProps} />
     <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
-      <FullscreenLayout scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
-        setCursor(null);
-        jumpToNew(scrollRef.current);
-      }} scrollable={<>
-        <TeammateViewHeader />
-        <Messages messages={displayedMessages} tools={tools} commands={commands} verbose={verbose} toolJSX={toolJSX} toolUseConfirmQueue={toolUseConfirmQueue} inProgressToolUseIDs={viewedTeammateTask ? viewedTeammateTask.inProgressToolUseIDs ?? new Set() : inProgressToolUseIDs} isMessageSelectorVisible={isMessageSelectorVisible} conversationId={conversationId} screen={screen} streamingToolUses={streamingToolUses} showAllInTranscript={showAllInTranscript} agentDefinitions={agentDefinitions} onOpenRateLimitOptions={handleOpenRateLimitOptions} isLoading={isLoading} streamingText={isLoading && !viewedAgentTask ? visibleStreamingText : null} isBriefOnly={viewedAgentTask ? false : isBriefOnly} unseenDivider={viewedAgentTask ? undefined : unseenDivider} scrollRef={isFullscreenEnvEnabled() ? scrollRef : undefined} trackStickyPrompt={isFullscreenEnvEnabled() ? true : undefined} cursor={cursor} setCursor={setCursor} cursorNavRef={cursorNavRef} />
-        <AwsAuthStatusBox />
+     <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
+       setCursor(null);
+       jumpToNew(scrollRef.current);
+       }} scrollable={<>
+       <TeammateViewHeader />
+       <Messages messages={displayedMessages} tools={tools} commands={commands} verbose={verbose} toolJSX={toolJSX} toolUseConfirmQueue={toolUseConfirmQueue} inProgressToolUseIDs={viewedTeammateTask ? viewedTeammateTask.inProgressToolUseIDs ?? new Set() : inProgressToolUseIDs} isMessageSelectorVisible={isMessageSelectorVisible} conversationId={conversationId} screen={screen} streamingToolUses={streamingToolUses} showAllInTranscript={showAllInTranscript} agentDefinitions={agentDefinitions} onOpenRateLimitOptions={handleOpenRateLimitOptions} isLoading={isLoading} streamingText={isLoading && !viewedAgentTask ? visibleStreamingText : null} isBriefOnly={viewedAgentTask ? false : isBriefOnly} unseenDivider={viewedAgentTask ? undefined : unseenDivider} scrollRef={isFullscreenEnvEnabled() ? scrollRef : undefined} trackStickyPrompt={isFullscreenEnvEnabled() ? true : undefined} cursor={cursor} setCursor={setCursor} cursorNavRef={cursorNavRef} />        <AwsAuthStatusBox />
         {/* Hide the processing placeholder while a modal is showing —
                   it would sit at the last visible transcript row right above
                   the ▔ divider, showing "❯ /config" as redundant clutter

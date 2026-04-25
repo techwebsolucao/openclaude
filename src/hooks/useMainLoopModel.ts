@@ -3,6 +3,7 @@ import { onGrowthBookRefresh } from '../services/analytics/growthbook.js'
 import { useAppState } from '../state/AppState.js'
 import {
   getDefaultMainLoopModelSetting,
+  getRuntimeMainLoopModel,
   type ModelName,
   parseUserSpecifiedModel,
 } from '../utils/model/model.js'
@@ -13,6 +14,7 @@ import {
 export function useMainLoopModel(): ModelName {
   const mainLoopModel = useAppState(s => s.mainLoopModel)
   const mainLoopModelForSession = useAppState(s => s.mainLoopModelForSession)
+  const permissionMode = useAppState(s => s.toolPermissionContext.mode)
 
   // parseUserSpecifiedModel reads tengu_ant_model_override via
   // _CACHED_MAY_BE_STALE (in resolveAntModel). Until GB init completes,
@@ -25,10 +27,14 @@ export function useMainLoopModel(): ModelName {
   const [, forceRerender] = useReducer(x => x + 1, 0)
   useEffect(() => onGrowthBookRefresh(forceRerender), [])
 
-  const model = parseUserSpecifiedModel(
+  const baseModel = parseUserSpecifiedModel(
     mainLoopModelForSession ??
       mainLoopModel ??
       getDefaultMainLoopModelSetting(),
   )
-  return model
+
+  return getRuntimeMainLoopModel({
+    permissionMode,
+    mainLoopModel: baseModel,
+  })
 }

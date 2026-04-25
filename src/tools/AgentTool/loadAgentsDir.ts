@@ -475,8 +475,9 @@ export function parseAgentFromJson(
       process.env.USER_TYPE === 'ant' ? ['worktree', 'remote'] : ['worktree']
     let isolation: IsolationMode | undefined
     if (parsed.isolation) {
-      if (VALID_ISOLATION_MODES.includes(parsed.isolation as IsolationMode)) {
-        isolation = parsed.isolation as IsolationMode
+      const isolationValue = (parsed.isolation as string) === 'git' ? 'worktree' : parsed.isolation;
+      if (VALID_ISOLATION_MODES.includes(isolationValue as IsolationMode)) {
+        isolation = isolationValue as IsolationMode
       } else {
         logForDebugging(
           `Agent '${name}' from JSON has invalid isolation value '${parsed.isolation}'. Valid options: ${VALID_ISOLATION_MODES.join(', ')}`,
@@ -622,8 +623,9 @@ export function parseAgentFromMarkdown(
     const isolationRaw = frontmatter['isolation'] as string | undefined
     let isolation: IsolationMode | undefined
     if (isolationRaw !== undefined) {
-      if (VALID_ISOLATION_MODES.includes(isolationRaw as IsolationMode)) {
-        isolation = isolationRaw as IsolationMode
+      const isolationValue = (isolationRaw as string) === 'git' ? 'worktree' : isolationRaw;
+      if (VALID_ISOLATION_MODES.includes(isolationValue as IsolationMode)) {
+        isolation = isolationValue as IsolationMode
       } else {
         logForDebugging(
           `Agent file ${filePath} has invalid isolation value '${isolationRaw}'. Valid options: ${VALID_ISOLATION_MODES.join(', ')}`,
