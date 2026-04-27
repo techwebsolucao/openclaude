@@ -178,6 +178,8 @@ export type ToolUseContext = {
     refreshTools?: () => Tools
     /** Per-agent provider override from agentRouting config */
     providerOverride?: { model: string; baseURL: string; apiKey: string }
+    /** Optional callback to get the latest provider override (e.g., after mode changes) */
+    refreshProviderOverride?: () => { model: string; baseURL: string; apiKey: string } | undefined
   }
   abortController: AbortController
   readFileState: FileStateCache

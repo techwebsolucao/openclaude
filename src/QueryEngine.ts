@@ -66,6 +66,7 @@ import {
   parseUserSpecifiedModel,
 } from './utils/model/model.js'
 import { resolveMainLoopProvider } from './services/api/agentRouting.js'
+import { getSettings_DEPRECATED } from './utils/settings/settings.js'
 import { loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js'
 import {
   type ProcessUserInputContext,
@@ -364,7 +365,8 @@ export class QueryEngine {
         agentDefinitions: { activeAgents: agents, allAgents: [] },
         theme: resolveThemeSetting(getGlobalConfig().theme),
         maxBudgetUsd,
-        providerOverride: resolveMainLoopProvider(getSettings_DEPRECATED()),
+        providerOverride: resolveMainLoopProvider(getSettings_DEPRECATED()) ?? undefined,
+        refreshProviderOverride: () => resolveMainLoopProvider(getSettings_DEPRECATED(), getAppState().toolPermissionContext?.mode) ?? undefined,
       },
       getAppState,
       setAppState,
@@ -513,7 +515,8 @@ export class QueryEngine {
         theme: resolveThemeSetting(getGlobalConfig().theme),
         agentDefinitions: { activeAgents: agents, allAgents: [] },
         maxBudgetUsd,
-        providerOverride: processUserInputContext.options.providerOverride,
+        providerOverride: processUserInputContext.options.refreshProviderOverride?.() ?? processUserInputContext.options.providerOverride,
+        refreshProviderOverride: processUserInputContext.options.refreshProviderOverride,
       },
       getAppState,
       setAppState,
