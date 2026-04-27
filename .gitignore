@@ -12,3 +12,4 @@ package-lock.json
 coverage/
 .DS_STORE/**/*
 .DS_STORE
+.openclaude
