@@ -703,7 +703,7 @@ async function* queryLoop(
               skipCacheWrite,
               agentId: toolUseContext.agentId,
               addNotification: toolUseContext.addNotification,
-              providerOverride: toolUseContext.options.refreshProviderOverride?.() ?? toolUseContext.options.providerOverride,
+              providerOverride: toolUseContext.options.providerOverride,
               ...(params.taskBudget && {
                 taskBudget: {
                   total: params.taskBudget.total,

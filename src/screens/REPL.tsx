@@ -477,9 +477,9 @@ function TranscriptSearchBar({
       </Text> : null}
   </Box>;
 }
-const TITLE_ANIMATION_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const TITLE_STATIC_PREFIX = '✨';
-const TITLE_ANIMATION_INTERVAL_MS = 120;
+const TITLE_ANIMATION_FRAMES = ['⠂', '⠐'];
+const TITLE_STATIC_PREFIX = '✳';
+const TITLE_ANIMATION_INTERVAL_MS = 960;
 
 /**
  * Sets the terminal tab title, with an animated prefix glyph while a query
@@ -2446,10 +2446,6 @@ export function REPL({
         appendSystemPrompt,
         refreshTools: computeTools,
         providerOverride: resolveMainLoopProvider(getSettings_DEPRECATED(), s.toolPermissionContext?.mode) ?? undefined,
-        refreshProviderOverride: () => {
-          const state = store.getState()
-          return resolveMainLoopProvider(getSettings_DEPRECATED(), state.toolPermissionContext?.mode) ?? undefined
-        },
       },
       getAppState: () => store.getState(),
       setAppState,
@@ -3966,7 +3962,7 @@ export function REPL({
         // Use ref to get current dialog state, avoiding stale closure
         focusedInputDialogRef.current === undefined && idleTimeSinceResponse >= getGlobalConfig().messageIdleNotifThresholdMs) {
         void sendNotification({
-          message: 'Ready for your next move 🚀',
+          message: 'Claude is waiting for your input',
           notificationType: 'idle_prompt'
         }, terminal);
       }
@@ -4460,7 +4456,7 @@ export function REPL({
           // gets yellow. Next n/N re-establishes via step()→jump().
           onScroll={() => jumpRef.current?.disarmSearch()} /> : null}
       <CancelRequestHandler {...cancelRequestProps} />
-      {transcriptScrollRef ? <FullscreenLayout top={undefined} scrollRef={scrollRef} scrollable={<>
+      {transcriptScrollRef ? <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} scrollable={<>
         {transcriptMessagesElement}
         {transcriptToolJSX}
         <SandboxViolationExpandedView />
@@ -4596,7 +4592,7 @@ export function REPL({
     {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
     <CancelRequestHandler {...cancelRequestProps} />
     <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
-     <FullscreenLayout top={undefined} scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
+     <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
        setCursor(null);
        jumpToNew(scrollRef.current);
        }} scrollable={<>
@@ -4935,7 +4931,6 @@ export function REPL({
             <PromptInput debug={debug} ideSelection={ideSelection} hasSuppressedDialogs={!!hasSuppressedDialogs} isLocalJSXCommandActive={isShowingLocalJSXCommand} getToolUseContext={getToolUseContext} toolPermissionContext={toolPermissionContext} setToolPermissionContext={setToolPermissionContext} apiKeyStatus={apiKeyStatus} commands={commands} agents={agentDefinitions.activeAgents} isLoading={isLoading} onExit={handleExit} verbose={verbose} messages={messages} onAutoUpdaterResult={setAutoUpdaterResult} autoUpdaterResult={autoUpdaterResult} input={inputValue} onInputChange={setInputValue} mode={inputMode} onModeChange={setInputMode} stashedPrompt={stashedPrompt} setStashedPrompt={setStashedPrompt} submitCount={submitCount} onShowMessageSelector={handleShowMessageSelector} onMessageActionsEnter={
               // Works during isLoading — edit cancels first; uuid selection survives appends.
               feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? enterMessageActions : undefined} mcpClients={mcpClients} pastedContents={pastedContents} setPastedContents={setPastedContents} vimMode={vimMode} setVimMode={setVimMode} showBashesDialog={showBashesDialog} setShowBashesDialog={setShowBashesDialog} onSubmit={onSubmit} onAgentSubmit={onAgentSubmit} isSearchingHistory={isSearchingHistory} setIsSearchingHistory={setIsSearchingHistory} helpOpen={isHelpOpen} setHelpOpen={setIsHelpOpen} insertTextRef={feature('VOICE_MODE') ? insertTextRef : undefined} voiceInterimRange={voice.interimRange} />
-            <MainLoopStatusHeader isLoading={isLoading} />
             <SessionBackgroundHint onBackgroundSession={handleBackgroundSession} isLoading={isLoading} />
           </>}
           {cursor &&

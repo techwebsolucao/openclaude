@@ -9,36 +9,14 @@ import { renderModelName } from '../utils/model/model.js';
 import { Box, Text } from '../ink.js';
 
 function fmtK(n: number): string {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, '')}m`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
 
-// Plane animations:
-const ASCII_PLANE_IDLE = '---✈︎';
-const ASCII_PLANE_FRAMES = [
-  '   ✈︎',
-  '  -✈︎',
-  ' --✈︎',
-  '---✈︎',
-  '--✈︎ ',
-  '-✈︎  ',
-  '✈︎   ',
-];
-const COLORS = [
-  'cyanBright',
-  'magentaBright',
-  'greenBright',
-  'yellowBright',
-  'blueBright',
-  'redBright'
-];
-
-export function MainLoopStatusHeader({ isLoading }: { isLoading?: boolean }) {
+export function MainLoopStatusHeader() {
   const model = useMainLoopModel();
   const permissionMode = useAppState(s => s.toolPermissionContext.mode);
   const [blink, setBlink] = useState(true);
-  const [frame, setFrame] = useState(0);
   
   const [counterData, setCounterData] = useState(() => ({
     input: getTotalInputTokens(),
@@ -61,19 +39,15 @@ export function MainLoopStatusHeader({ isLoading }: { isLoading?: boolean }) {
   }, []);
 
   useEffect(() => {
+    if (permissionMode !== 'plan') {
+      setBlink(true);
+      return;
+    }
     const id = setInterval(() => {
       setBlink(prev => !prev);
-    }, 750);
+    }, 500);
     return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) return;
-    const id = setInterval(() => {
-      setFrame(f => (f + 1) % ASCII_PLANE_FRAMES.length);
-    }, 150);
-    return () => clearInterval(id);
-  }, [isLoading]);
+  }, [permissionMode]);
 
   const { output, lastInput, cost } = counterData;
   const ctxWindow = getContextWindowForModel(model, getSdkBetas());
@@ -84,29 +58,18 @@ export function MainLoopStatusHeader({ isLoading }: { isLoading?: boolean }) {
 
   const isPlanMode = permissionMode === 'plan';
 
-  const currentPlane = isLoading ? ASCII_PLANE_FRAMES[frame] : ASCII_PLANE_IDLE;
-  // Cycle colors if loading, or blink a single color when idle
-  const planeColor = isLoading ? COLORS[frame % COLORS.length] : (blink ? 'cyanBright' : 'blueBright');
-
-  // Space-pad the resulting string so it fully overwrites the previous text 
-  // on line re-renders when the terminal output doesn't clear the line.
-  const statusLine = `· ${fmtK(ctxUsed)}/${fmtK(ctxWindow)} tokens (${pct}%) · ${costStr}`.padEnd(45, ' ');
-
   return (
     <Box paddingX={2} marginBottom={0} justifyContent="space-between">
       <Box gap={1}>
-        {isPlanMode ? (
-          <Text color="cyanBright" backgroundColor={blink ? 'cyan' : undefined} bold={true}>
-            ✻ {name}
-          </Text>
-        ) : (
-          <Box>
-            <Text color={planeColor as any} bold={true}>{currentPlane}</Text>
-            <Text color="claude" bold={true}> {name}</Text>
-          </Box>
-        )}
+        <Text
+          color={isPlanMode ? 'cyanBright' : 'claude'}
+          backgroundColor={isPlanMode && blink ? 'cyan' : undefined}
+          bold={true}
+        >
+          ✻ {name}
+        </Text>
         <Text dimColor={true}>
-          {statusLine}
+          {`· ${fmtK(ctxUsed)}/${fmtK(ctxWindow)} tokens (${pct}%) · ${costStr}`}
         </Text>
       </Box>
       {isPlanMode && (
@@ -117,4 +80,3 @@ export function MainLoopStatusHeader({ isLoading }: { isLoading?: boolean }) {
     </Box>
   );
 }
-

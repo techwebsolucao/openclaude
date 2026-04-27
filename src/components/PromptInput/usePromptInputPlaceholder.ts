@@ -62,11 +62,8 @@ export function usePromptInputPlaceholder({
       promptSuggestionEnabled &&
       !proactiveModule?.isProactiveActive()
     ) {
-      const example = getExampleCommandFromCache()
-      return example ? example : 'Ready for your next challenge? ✈️'
+      return getExampleCommandFromCache()
     }
-
-    return 'Ready for your next challenge? ✈️'
   }, [
     input,
     queuedCommands,
