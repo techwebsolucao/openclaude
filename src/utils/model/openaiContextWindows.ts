@@ -73,6 +73,7 @@ const OPENAI_CONTEXT_WINDOWS: Record<string, number> = {
   'qwen3:8b':                 128_000,
   'qwen3-coder-next:cloud':    256_000,
   'qwen3-coder:480b-cloud':   256_000,
+  'qwen3.5:397b-cloud':   256_000,
   'qwen3.5-397b-a17b':        262_144,
   'glm-5.1:cloud':             256_000,
   'deepseek-v3.2:cloud': 160_000,

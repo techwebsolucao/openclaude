@@ -56,7 +56,7 @@ import { ElicitationDialog } from '../components/mcp/ElicitationDialog.js';
 import { PromptDialog } from '../components/hooks/PromptDialog.js';
 import type { PromptRequest, PromptResponse } from '../types/hooks.js';
 import PromptInput from '../components/PromptInput/PromptInput.js';
-import { MainLoopStatusHeader } from '../components/MainLoopStatusHeader.js';
+import { MainLoopStatusFooter } from '../components/MainLoopStatusHeader.js';
 import { PromptInputQueuedCommands } from '../components/PromptInput/PromptInputQueuedCommands.js';
 import { useRemoteSession } from '../hooks/useRemoteSession.js';
 import { useDirectConnect } from '../hooks/useDirectConnect.js';
@@ -4456,7 +4456,7 @@ export function REPL({
           // gets yellow. Next n/N re-establishes via step()→jump().
           onScroll={() => jumpRef.current?.disarmSearch()} /> : null}
       <CancelRequestHandler {...cancelRequestProps} />
-      {transcriptScrollRef ? <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} scrollable={<>
+      {transcriptScrollRef ? <FullscreenLayout top={null} scrollRef={scrollRef} scrollable={<>
         {transcriptMessagesElement}
         {transcriptToolJSX}
         <SandboxViolationExpandedView />
@@ -4592,7 +4592,7 @@ export function REPL({
     {feature('MESSAGE_ACTIONS') && isFullscreenEnvEnabled() && !disableMessageActions ? <MessageActionsKeybindings handlers={messageActionHandlers} isActive={cursor !== null} /> : null}
     <CancelRequestHandler {...cancelRequestProps} />
     <MCPConnectionManager key={remountKey} dynamicMcpConfig={dynamicMcpConfig} isStrictMcpConfig={strictMcpConfig}>
-     <FullscreenLayout top={<MainLoopStatusHeader />} scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
+     <FullscreenLayout top={null} scrollRef={scrollRef} overlay={toolPermissionOverlay} bottomFloat={undefined} modal={centeredModal} modalScrollRef={modalScrollRef} dividerYRef={dividerYRef} hidePill={!!viewedAgentTask} hideSticky={!!viewedTeammateTask} newMessageCount={unseenDivider?.count ?? 0} onPillClick={() => {
        setCursor(null);
        jumpToNew(scrollRef.current);
        }} scrollable={<>
@@ -4616,8 +4616,10 @@ export function REPL({
         {showSpinner && <SpinnerWithVerb mode={streamMode} spinnerTip={spinnerTip} responseLengthRef={responseLengthRef} apiMetricsRef={apiMetricsRef} overrideMessage={spinnerMessage} spinnerSuffix={stopHookSpinnerSuffix} verbose={verbose} loadingStartTimeRef={loadingStartTimeRef} totalPausedMsRef={totalPausedMsRef} pauseStartTimeRef={pauseStartTimeRef} overrideColor={spinnerColor} overrideShimmerColor={spinnerShimmerColor} hasActiveTools={inProgressToolUseIDs.size > 0} leaderIsIdle={!isLoading} />}
         {!showSpinner && !isLoading && !userInputOnProcessing && !hasRunningTeammates && isBriefOnly && !viewedAgentTask && <BriefIdleStatus />}
         {isFullscreenEnvEnabled() && <PromptInputQueuedCommands />}
-      </>} bottom={<Box flexDirection={'row'} width="100%" alignItems={'flex-end'}>
-                <Box flexDirection="column" flexGrow={1}>
+      </>} bottom={<Box flexDirection="column" width="100%">
+                <MainLoopStatusFooter />
+                <Box flexDirection={'row'} width="100%" alignItems={'flex-end'}>
+                  <Box flexDirection="column" flexGrow={1}>
           {permissionStickyFooter}
           {/* Immediate local-jsx commands (/btw, /sandbox, /assistant,
                   /issue) render here, NOT inside scrollable. They stay mounted
@@ -5020,7 +5022,8 @@ export function REPL({
           }} />}
           {"external" === 'ant' && <DevBar />}
         </Box>
-      </Box>} />
+      </Box>
+    </Box>} />
     </MCPConnectionManager>
   </KeybindingSetup>;
   if (isFullscreenEnvEnabled()) {

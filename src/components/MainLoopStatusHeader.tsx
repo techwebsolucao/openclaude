@@ -13,11 +13,11 @@ function fmtK(n: number): string {
   return String(n);
 }
 
-export function MainLoopStatusHeader() {
+export function MainLoopStatusFooter() {
   const model = useMainLoopModel();
   const permissionMode = useAppState(s => s.toolPermissionContext.mode);
   const [blink, setBlink] = useState(true);
-  
+
   const [counterData, setCounterData] = useState(() => ({
     input: getTotalInputTokens(),
     output: getTotalOutputTokens(),
@@ -34,7 +34,7 @@ export function MainLoopStatusHeader() {
         cost: getTotalCost(),
       });
     };
-    const id = setInterval(update, 2000);
+    const id = setInterval(update, 500);
     return () => clearInterval(id);
   }, []);
 
@@ -59,7 +59,7 @@ export function MainLoopStatusHeader() {
   const isPlanMode = permissionMode === 'plan';
 
   return (
-    <Box paddingX={2} marginBottom={0} justifyContent="space-between">
+    <Box paddingX={2} paddingTop={1} justifyContent="space-between">
       <Box gap={1}>
         <Text
           color={isPlanMode ? 'cyanBright' : 'claude'}
@@ -74,9 +74,12 @@ export function MainLoopStatusHeader() {
       </Box>
       {isPlanMode && (
         <Text color="cyanBright" bold={true} backgroundColor={blink ? 'cyan' : undefined}>
-           PLAN MODE ACTIVE 
+           PLAN MODE ACTIVE
         </Text>
       )}
     </Box>
   );
 }
+
+/** @deprecated Use MainLoopStatusFooter instead */
+export const MainLoopStatusHeader = MainLoopStatusFooter;
