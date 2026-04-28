@@ -203,6 +203,26 @@ export async function shouldAutoCompact(
     return false
   }
 
+  const tokenCount = tokenCountWithEstimation(messages) - snipTokensFreed
+  const threshold = getAutoCompactThreshold(model)
+  const effectiveWindow = getEffectiveContextWindowSize(model)
+  const actualContextWindow = getContextWindowForModel(model, getSdkBetas())
+
+  // EMERGENCY FALLBACK: When context usage is critically high (>95% of actual window),
+  // force auto-compact regardless of feature flags. This prevents the "170k of 256k
+  // without compact" issue where REACTIVE_COMPACT or CONTEXT_COLLAPSE flags block
+  // proactive compaction but the context is dangerously close to the hard limit.
+  const criticalThreshold = Math.floor(actualContextWindow * 0.95)
+  const isCriticallyHigh = tokenCount >= criticalThreshold
+
+  if (isCriticallyHigh) {
+    logForDebugging(
+      `autocompact: CRITICAL — tokens=${tokenCount} (${((tokenCount / actualContextWindow) * 100).toFixed(1)}% of ${actualContextWindow}) — forcing compact despite feature flags`,
+      { level: 'warn' },
+    )
+    return true
+  }
+
   // Reactive-only mode: suppress proactive autocompact, let reactive compact
   // catch the API's prompt-too-long. feature() wrapper keeps the flag string
   // out of external builds (REACTIVE_COMPACT is internal-only).
@@ -238,10 +258,6 @@ export async function shouldAutoCompact(
       return false
     }
   }
-
-  const tokenCount = tokenCountWithEstimation(messages) - snipTokensFreed
-  const threshold = getAutoCompactThreshold(model)
-  const effectiveWindow = getEffectiveContextWindowSize(model)
 
   logForDebugging(
     `autocompact: tokens=${tokenCount} threshold=${threshold} effectiveWindow=${effectiveWindow}${snipTokensFreed > 0 ? ` snipFreed=${snipTokensFreed}` : ''}`,

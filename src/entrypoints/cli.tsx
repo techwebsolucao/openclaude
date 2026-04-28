@@ -96,8 +96,11 @@ async function main(): Promise<void> {
   await validateProviderEnvOrExit()
 
   // Print the gradient startup screen before the Ink UI loads
-  const { printStartupScreen } = await import('../components/StartupScreen.js')
+  const { printStartupScreen, showModelSelector } = await import('../components/StartupScreen.js')
   printStartupScreen()
+
+  // Show interactive model selector if agentModels are configured
+  await showModelSelector()
 
   // For all other paths, load the startup profiler
   const {
