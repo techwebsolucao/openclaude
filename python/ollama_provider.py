@@ -165,7 +165,7 @@ async def ollama_chat_stream(
                         yield "event: content_block_stop\n"
                         yield f'data: {json.dumps({"type": "content_block_stop", "index": 0})}\n\n'
                         yield "event: message_delta\n"
-                        yield f'data: {json.dumps({"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": chunk.get("eval_count", 0)}})}\n\n'
+                        yield f'data: {json.dumps({"type": "message_delta", "delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": chunk.get("eval_count", 0), "input_tokens": chunk.get("prompt_eval_count", 0)}})}\n\n'
                         yield "event: message_stop\n"
                         yield f'data: {json.dumps({"type": "message_stop"})}\n\n'
                         break
