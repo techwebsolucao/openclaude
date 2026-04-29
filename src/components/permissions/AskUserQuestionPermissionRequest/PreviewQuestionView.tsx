@@ -71,6 +71,7 @@ export function PreviewQuestionView({
 
   // Track which option is focused (for preview display)
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const focusedIndexRef = useRef(0);
 
   // Reset focusedIndex when navigating to a different question
   const prevQuestionText = useRef(questionText);
@@ -78,7 +79,9 @@ export function PreviewQuestionView({
     prevQuestionText.current = questionText;
     const selected = questionState?.selectedValue as string | undefined;
     const idx = selected ? allOptions.findIndex(opt => opt.label === selected) : -1;
-    setFocusedIndex(idx >= 0 ? idx : 0);
+    const newIdx = idx >= 0 ? idx : 0;
+    focusedIndexRef.current = newIdx;
+    setFocusedIndex(newIdx);
   }
   const focusedOption = allOptions[focusedIndex];
   const selectedValue = questionState?.selectedValue as string | undefined;
@@ -86,6 +89,7 @@ export function PreviewQuestionView({
   const handleSelectOption = useCallback((index: number) => {
     const option = allOptions[index];
     if (!option) return;
+    focusedIndexRef.current = index;
     setFocusedIndex(index);
     onUpdateQuestionState(questionText, {
       selectedValue: option.label
@@ -98,14 +102,15 @@ export function PreviewQuestionView({
     if (typeof direction === 'number') {
       newIndex = direction;
     } else if (direction === 'up') {
-      newIndex = focusedIndex > 0 ? focusedIndex - 1 : focusedIndex;
+      newIndex = focusedIndexRef.current > 0 ? focusedIndexRef.current - 1 : focusedIndexRef.current;
     } else {
-      newIndex = focusedIndex < allOptions.length - 1 ? focusedIndex + 1 : focusedIndex;
+      newIndex = focusedIndexRef.current < allOptions.length - 1 ? focusedIndexRef.current + 1 : focusedIndexRef.current;
     }
     if (newIndex >= 0 && newIndex < allOptions.length) {
+      focusedIndexRef.current = newIndex;
       setFocusedIndex(newIndex);
     }
-  }, [focusedIndex, allOptions.length, isInNotesInput]);
+  }, [allOptions.length, isInNotesInput]);
 
   // Handle ctrl+g to open external editor for notes
   useKeybinding('chat:externalEditor', async () => {
@@ -197,12 +202,12 @@ export function PreviewQuestionView({
     // Handle option navigation (vertical)
     if (e.key === 'up' || e.ctrl && e.key === 'p') {
       e.preventDefault();
-      if (focusedIndex > 0) {
+      if (focusedIndexRef.current > 0) {
         handleNavigate('up');
       }
     } else if (e.key === 'down' || e.ctrl && e.key === 'n') {
       e.preventDefault();
-      if (focusedIndex === allOptions.length - 1) {
+      if (focusedIndexRef.current === allOptions.length - 1) {
         // At bottom of options, go to footer
         handleDownFromPreview();
       } else {
@@ -210,7 +215,7 @@ export function PreviewQuestionView({
       }
     } else if (e.key === 'return') {
       e.preventDefault();
-      handleSelectOption(focusedIndex);
+      handleSelectOption(focusedIndexRef.current);
     } else if (e.key === 'n' && !e.ctrl && !e.meta) {
       // Press 'n' to focus the notes input
       e.preventDefault();

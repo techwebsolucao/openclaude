@@ -5,6 +5,7 @@ import {
   useReducer,
   useRef,
   useState,
+  type MutableRefObject,
 } from 'react'
 import { isDeepStrictEqual } from 'util'
 import OptionMap from './option-map.js'
@@ -418,6 +419,11 @@ export type SelectNavigation<T> = {
    * Focus a specific option by value.
    */
   focusOption: (value: T | undefined) => void
+
+  /**
+   * Ref to the internal state for synchronous access.
+   */
+  stateRef?: MutableRefObject<State<T>>
 }
 
 const createDefaultState = <T>({
@@ -518,6 +524,12 @@ export function useSelectNavigation<T>({
     createDefaultState<T>,
   )
 
+  // Use a ref to track the latest state synchronously. This is crucial for
+  // handling rapid keyboard events (e.g. Down + Enter) where multiple events
+  // may be processed before React can re-render with the updated state.
+  const stateRef = useRef(state)
+  stateRef.current = state
+
   // Store onFocus in a ref to avoid re-running useEffect when callback changes
   const onFocusRef = useRef(onFocus)
   onFocusRef.current = onFocus
@@ -525,42 +537,52 @@ export function useSelectNavigation<T>({
   const [lastOptions, setLastOptions] = useState(options)
 
   if (options !== lastOptions && !isDeepStrictEqual(options, lastOptions)) {
+    const newState = createDefaultState({
+      visibleOptionCount,
+      options,
+      initialFocusValue:
+        focusValue ?? state.focusedValue ?? initialFocusValue,
+      currentViewport: {
+        visibleFromIndex: state.visibleFromIndex,
+        visibleToIndex: state.visibleToIndex,
+      },
+    })
+    stateRef.current = newState
     dispatch({
       type: 'reset',
-      state: createDefaultState({
-        visibleOptionCount,
-        options,
-        initialFocusValue:
-          focusValue ?? state.focusedValue ?? initialFocusValue,
-        currentViewport: {
-          visibleFromIndex: state.visibleFromIndex,
-          visibleToIndex: state.visibleToIndex,
-        },
-      }),
+      state: newState,
     })
 
     setLastOptions(options)
   }
 
   const focusNextOption = useCallback(() => {
+    const nextState = reducer(stateRef.current, { type: 'focus-next-option' })
+    stateRef.current = nextState
     dispatch({
       type: 'focus-next-option',
     })
   }, [])
 
   const focusPreviousOption = useCallback(() => {
+    const nextState = reducer(stateRef.current, { type: 'focus-previous-option' })
+    stateRef.current = nextState
     dispatch({
       type: 'focus-previous-option',
     })
   }, [])
 
   const focusNextPage = useCallback(() => {
+    const nextState = reducer(stateRef.current, { type: 'focus-next-page' })
+    stateRef.current = nextState
     dispatch({
       type: 'focus-next-page',
     })
   }, [])
 
   const focusPreviousPage = useCallback(() => {
+    const nextState = reducer(stateRef.current, { type: 'focus-previous-page' })
+    stateRef.current = nextState
     dispatch({
       type: 'focus-previous-page',
     })
@@ -568,6 +590,8 @@ export function useSelectNavigation<T>({
 
   const focusOption = useCallback((value: T | undefined) => {
     if (value !== undefined) {
+      const nextState = reducer(stateRef.current, { type: 'set-focus', value })
+      stateRef.current = nextState
       dispatch({
         type: 'set-focus',
         value,
@@ -619,6 +643,8 @@ export function useSelectNavigation<T>({
   // Allow parent to programmatically set focus via focusValue prop
   useEffect(() => {
     if (focusValue !== undefined) {
+      const nextState = reducer(stateRef.current, { type: 'set-focus', value: focusValue })
+      stateRef.current = nextState
       dispatch({
         type: 'set-focus',
         value: focusValue,
@@ -648,5 +674,6 @@ export function useSelectNavigation<T>({
     focusPreviousPage,
     focusOption,
     options,
+    stateRef,
   }
 }

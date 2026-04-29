@@ -135,15 +135,16 @@ export const useSelectInput = <T>({
       }
       handlers['select:accept'] = () => {
         if (disableSelection === true) return
-        if (state.focusedValue === undefined) return
 
-        const focusedOption = options.find(
-          opt => opt.value === state.focusedValue,
-        )
+        const focusedValue =
+          state.stateRef?.current.focusedValue ?? state.focusedValue
+        if (focusedValue === undefined) return
+
+        const focusedOption = options.find(opt => opt.value === focusedValue)
         if (focusedOption?.disabled === true) return
 
         state.selectFocusedOption?.()
-        state.onChange?.(state.focusedValue)
+        state.onChange?.(focusedValue)
       }
     }
 

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type MutableRefObject } from 'react'
 import type { OptionWithDescription } from './select.js'
 import { useSelectNavigation } from './use-select-navigation.js'
 
@@ -107,6 +107,11 @@ export type SelectState<T> = {
    * Focus a specific option by value.
    */
   focusOption: (value: T | undefined) => void
+
+  /**
+   * Ref to the internal state for synchronous access.
+   */
+  stateRef?: MutableRefObject<any>
 
   /**
    * Select currently focused option.

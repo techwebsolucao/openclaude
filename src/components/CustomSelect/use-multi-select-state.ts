@@ -247,9 +247,9 @@ export function useMultiSelectState<T>({
   useInput(
     (input, key, event: InputEvent) => {
       const normalizedInput = normalizeFullWidthDigits(input)
-      const focusedOption = options.find(
-        opt => opt.value === navigation.focusedValue,
-      )
+      const focusedValue =
+        navigation.stateRef?.current.focusedValue ?? navigation.focusedValue
+      const focusedOption = options.find(opt => opt.value === focusedValue)
       const isInInput = focusedOption?.type === 'input'
 
       // When in input field, only allow navigation keys
@@ -271,7 +271,7 @@ export function useMultiSelectState<T>({
         if (
           submitButtonText &&
           onSubmit &&
-          navigation.focusedValue === lastOptionValue &&
+          focusedValue === lastOptionValue &&
           !isSubmitFocused
         ) {
           setIsSubmitFocused(true)
@@ -303,14 +303,14 @@ export function useMultiSelectState<T>({
         } else if (
           submitButtonText &&
           onSubmit &&
-          navigation.focusedValue === lastOptionValue &&
+          focusedValue === lastOptionValue &&
           !isSubmitFocused
         ) {
           setIsSubmitFocused(true)
         } else if (
           !submitButtonText &&
           onDownFromLastItem &&
-          navigation.focusedValue === lastOptionValue
+          focusedValue === lastOptionValue
         ) {
           // No submit button — exit from the last option
           onDownFromLastItem()
@@ -331,7 +331,7 @@ export function useMultiSelectState<T>({
           navigation.focusOption(lastOptionValue)
         } else if (
           onUpFromFirstItem &&
-          navigation.focusedValue === options[0]?.value
+          focusedValue === options[0]?.value
         ) {
           onUpFromFirstItem()
         } else {
@@ -372,10 +372,10 @@ export function useMultiSelectState<T>({
         }
 
         // Enter or Space toggles selection (including for input fields)
-        if (navigation.focusedValue !== undefined) {
-          const newValues = selectedValues.includes(navigation.focusedValue)
-            ? selectedValues.filter(v => v !== navigation.focusedValue)
-            : [...selectedValues, navigation.focusedValue]
+        if (focusedValue !== undefined) {
+          const newValues = selectedValues.includes(focusedValue)
+            ? selectedValues.filter(v => v !== focusedValue)
+            : [...selectedValues, focusedValue]
           updateSelectedValues(newValues)
         }
         return
