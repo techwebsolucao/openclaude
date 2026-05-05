@@ -4617,7 +4617,7 @@ export function REPL({
         {!showSpinner && !isLoading && !userInputOnProcessing && !hasRunningTeammates && isBriefOnly && !viewedAgentTask && <BriefIdleStatus />}
         {isFullscreenEnvEnabled() && <PromptInputQueuedCommands />}
       </>} bottom={<Box flexDirection="column" width="100%">
-                <MainLoopStatusFooter />
+                <MainLoopStatusFooter messages={messages} />
                 <Box flexDirection={'row'} width="100%" alignItems={'flex-end'}>
                   <Box flexDirection="column" flexGrow={1}>
           {permissionStickyFooter}
