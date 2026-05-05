@@ -23,9 +23,13 @@ import { validateModel } from '../../utils/model/validateModel.js';
 import { getAdditionalModelOptionsCacheScope } from '../../services/api/providerConfig.js';
 import { TYPE_CUSTOM_MODEL_SENTINEL, saveCustomModel } from '../../utils/model/modelOptions.js';
 import { Box, Text, useInput } from '../../ink.js';
+import { Select } from '../../components/CustomSelect/index.js';
+import { Pane } from '../../components/design-system/Pane.js';
 import TextInput from '../../components/TextInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { getSettingsForSource } from '../../utils/settings/settings.js';
+import { getAgentModelOptions, getAgentRoutingDefault, updateAgentRoutingDefault, type AgentModelOption } from '../../utils/model/agentModelSelector.js';
+import type { EditableSettingSource } from '../../utils/settings/constants.js';
 function ModelPickerWrapper(t0) {
   const $ = _c(17);
   const {
@@ -330,6 +334,122 @@ function isSonnet1mUnavailable(model: string): boolean {
   // a different access criteria.
   return !checkSonnet1mAccess() && (m.includes('sonnet[1m]') || m.includes('sonnet-4-6[1m]'));
 }
+// ─── Agent model picker (used when agentRouting is present) ────────────────────
+
+function AgentModelPickerWrapper({
+  options,
+  source,
+  onDone,
+}: {
+  options: AgentModelOption[]
+  source: EditableSettingSource
+  onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void
+}): React.ReactNode {
+  const mainLoopModel = useAppState(s => s.mainLoopModel)
+  const setAppState = useSetAppState()
+
+  const currentModelName = getAgentRoutingDefault()?.modelName ?? mainLoopModel ?? ''
+
+  const selectOpts = React.useMemo(() => options.map(opt => ({
+    value: opt.modelName,
+    label: opt.modelName,
+    description: opt.isLocal
+      ? `Local (${opt.baseUrl ?? 'localhost'})`
+      : 'Cloud provider',
+  })), [options])
+
+  const defaultValue = selectOpts.some(opt => opt.value === currentModelName)
+    ? currentModelName
+    : selectOpts[0]?.value
+
+  const handleChange = React.useCallback((model: string) => {
+    if (!model) return
+
+    const { error } = updateAgentRoutingDefault(model, source)
+    if (error) {
+      onDone(`Failed to update settings: ${error.message}`, { display: 'system' })
+      return
+    }
+
+    setAppState(prev => ({
+      ...prev,
+      mainLoopModel: model,
+      mainLoopModelForSession: null,
+    }))
+
+    onDone(`Set model to ${chalk.bold(model)} (agentRouting updated)`)
+  }, [onDone, source, setAppState])
+
+  const handleCancel = React.useCallback(() => {
+    onDone(`Kept model as ${chalk.bold(currentModelName)}`, { display: 'system' })
+  }, [onDone, currentModelName])
+
+  return (
+    <Pane color="permission">
+      <Box flexDirection="column">
+        <Box marginBottom={1} flexDirection="column">
+          <Text color="remember" bold>Select model</Text>
+          <Text dimColor>Select a model from agentModels. Changes agentRouting.default and agentRouting.general-purpose in settings.json.</Text>
+        </Box>
+        <Box flexDirection="column" marginBottom={1}>
+          <Select
+            defaultValue={defaultValue}
+            options={selectOpts}
+            onChange={handleChange}
+            onCancel={handleCancel}
+            visibleOptionCount={Math.min(10, selectOpts.length)}
+          />
+        </Box>
+        <Text dimColor italic>Enter to confirm · Esc to cancel</Text>
+      </Box>
+    </Pane>
+  )
+}
+
+function SetAgentModelAndClose({
+  args,
+  source,
+  options,
+  onDone,
+}: {
+  args: string
+  source: EditableSettingSource
+  options: AgentModelOption[]
+  onDone: (result?: string, options?: { display?: CommandResultDisplay }) => void
+}): React.ReactNode {
+  const setAppState = useSetAppState()
+
+  React.useEffect(() => {
+    const modelName = args.trim()
+    const exists = options.some(opt => opt.modelName === modelName)
+
+    if (!exists) {
+      const available = options.map(opt => opt.modelName).join(', ')
+      onDone(
+        `Model '${chalk.bold(modelName)}' not found in agentModels.\nAvailable models: ${available}`,
+        { display: 'system' }
+      )
+      return
+    }
+
+    const { error } = updateAgentRoutingDefault(modelName, source)
+    if (error) {
+      onDone(`Failed to update settings: ${error.message}`, { display: 'system' })
+      return
+    }
+
+    setAppState(prev => ({
+      ...prev,
+      mainLoopModel: modelName,
+      mainLoopModelForSession: null,
+    }))
+
+    onDone(`Set model to ${chalk.bold(modelName)} (agentRouting updated)`)
+  }, [args, options, source, onDone, setAppState])
+
+  return null
+}
+
 function ShowModelAndClose(t0) {
   const {
     onDone
@@ -397,18 +517,29 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
     return;
   }
 
-  // If settings.json has agentRouting with a default model, /model is redundant
-  // because agentRouting overrides model selection at query time.
-  const userSettings = getSettingsForSource('userSettings');
-  const routingDefault = userSettings?.agentRouting?.['default'] || userSettings?.agentRouting?.['general-purpose'];
-  if (routingDefault) {
-    const configPath = '~/.openclaude/settings.json';
-    onDone(
-      `Model is configured via ${chalk.bold(configPath)} (agentRouting → ${chalk.bold(routingDefault)}).\n` +
-      `To change the model, edit ${chalk.bold(configPath)} or remove agentRouting to use /model.`,
-      { display: 'system' }
-    );
-    return;
+  // If settings.json has agentRouting, show a model picker with agentModels
+  // instead of blocking the user
+  const routingInfo = getAgentRoutingDefault();
+  if (routingInfo) {
+    const agentModelData = getAgentModelOptions();
+    if (!agentModelData) {
+      onDone(
+        `Model is configured via agentRouting (${chalk.bold(routingInfo.modelName)}), but no agentModels found.\n` +
+        `Add models to agentModels in your settings.json to use /model.`,
+        { display: 'system' }
+      );
+      return;
+    }
+
+    if (args) {
+      // Inline model name provided — validate it exists in agentModels
+      logEvent('tengu_model_command_inline', {
+        args: args as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
+      });
+      return <SetAgentModelAndClose args={args} source={agentModelData.source} options={agentModelData.options} onDone={onDone} />;
+    }
+
+    return <AgentModelPickerWrapper options={agentModelData.options} source={agentModelData.source} onDone={onDone} />;
   }
 
   if (args) {
